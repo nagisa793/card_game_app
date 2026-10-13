@@ -46,7 +46,9 @@ jobs:
         run: npm run sync:web
         if: steps.need.outputs.build == 'true'
       - name: Build and verify original rules and APP behavior
-        run: npm run check
+        run: |
+          npm run check
+          python3 tests/local-web.py
         if: steps.need.outputs.build == 'true'
       - name: Install Chromium for mobile layout tests
         run: npx playwright install --with-deps chromium

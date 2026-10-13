@@ -1,9 +1,21 @@
 # DUEL ARENA — スマホ横向きWEBアプリ
 
-遊ぶURL: **https://duel-arena-app.nagisa793.chatgpt.site/**
+## ローカルで起動する
 
-SafariやChromeでURLを開いてスマホを横向きにすると遊べます。
-iPhoneはSafariの共有から「ホーム画面に追加」するとWEBアプリとして開けます。
+GitHubの「Code → Download ZIP」で初回だけダウンロードして展開します。
+Macで `Start_card_game.command` を開くとローカルWEBサーバーとブラウザが起動します。Python 3が必要です。Node.jsやnpmは起動に不要です。
+
+MacのURL: **http://localhost:8766/**
+
+iPhoneはMacと同じWi-Fiに接続し、起動したウィンドウに表示される `http://MacのIPアドレス:8766/` をSafariで開きます。
+スマホを横向きにすると遊べます。Macのサーバーを起動している間はローカルURLで利用できます。
+iPhone上の `localhost` はiPhone自身なのでMacへの接続用URLにはなりません。
+ゲーム・画像・音源はMac内のファイルから配信します。初回ダウンロード後のゲーム起動にインターネットは不要です。
+起動中はGitHubの更新を確認して自動で取り込みます。毎回のダウンロードや入れ替えは不要です。
+
+公開プレビュー: https://duel-arena-app.nagisa793.chatgpt.site/
+この公開プレビューはlocalhostや自宅内IPのURLではありません。
+
 カードや光る枠をタップして選択し、山札上のボタンで決定・キャンセル・パスします。
 手札と上部メニューは横に、長いカード説明と選択一覧は縦にスクロールできます。
 

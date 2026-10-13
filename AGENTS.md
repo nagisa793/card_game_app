@@ -8,3 +8,5 @@
 - Keep renderers and touch targets on the same real viewport coordinates. Do not resize the field with CSS transforms or synthesize click coordinates.
 - Run npm run check after relevant changes. Mobile interaction tests run when the upstream game or the APP interface changes.
 - Publish www/ to the APP URL. Keep one-way automatic WEB synchronization and publication working.
+
+- The user explicitly requests local WEB URLs. Preserve local_web.py and Start_card_game.command. Mac uses localhost:8766; iPhone connects to the actual Mac LAN IP while the server runs. Never claim the hosted preview is a local URL or that the server is already running on the user’s Mac.

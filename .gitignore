@@ -4,3 +4,6 @@ www/
 test-results/
 playwright-report/
 .DS_Store
+
+.local/
+__pycache__/
