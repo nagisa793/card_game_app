@@ -1,4 +1,4 @@
-name: Build mobile apps
+name: Sync WEB app
 
 on:
   push:
@@ -92,54 +92,3 @@ jobs:
           path: www/
           retention-days: 30
 
-  android:
-    needs: prepare
-    if: needs.prepare.outputs.build == 'true'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.ref }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: npm
-      - uses: actions/setup-java@v5
-        with:
-          distribution: temurin
-          java-version: '21'
-      - uses: android-actions/setup-android@v4
-        with:
-          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
-          log-accepted-android-sdk-licenses: false
-      - run: npm ci
-      - run: npm run native:sync
-      - name: Build Android APK
-        run: bash android/gradlew -p android assembleDebug --no-daemon
-      - uses: actions/upload-artifact@v4
-        with:
-          name: duel-arena-android-debug
-          path: android/app/build/outputs/apk/debug/app-debug.apk
-          retention-days: 30
-
-  ios:
-    needs: prepare
-    if: needs.prepare.outputs.build == 'true'
-    runs-on: macos-26
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ needs.prepare.outputs.ref }}
-      - uses: actions/setup-node@v6
-        with:
-          node-version: '22'
-          cache: npm
-      - run: npm ci
-      - run: npm run native:sync
-      - name: Build iOS Simulator app without Apple signing credentials
-        run: xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/App/DerivedData CODE_SIGNING_ALLOWED=NO build
-      - uses: actions/upload-artifact@v4
-        with:
-          name: duel-arena-ios-simulator
-          path: ios/App/DerivedData/Build/Products/Debug-iphonesimulator/App.app
-          retention-days: 30

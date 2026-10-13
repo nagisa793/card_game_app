@@ -1,5 +1,5 @@
 // The original engine, renderer, phase timers and pointer handlers stay intact.
-// Only the APP viewport and native/browser lifecycle are handled here.
+// Only the WEB app viewport and browser lifecycle are handled here.
 const body = document.body;
 const stage = document.getElementById('battleStage');
 const gate = document.createElement('section');
@@ -38,10 +38,8 @@ document.addEventListener('contextmenu', event => {
 // Avoid leaving a held hand-card hover after an interrupted finger gesture.
 document.addEventListener('pointercancel', () => window.dispatchEvent(new Event('blur')), { passive: true });
 
-// PWA updates apply before the next game, never during a match. Native apps
-// bundle exactly the same www/ and do not register a service worker.
-const native = window.Capacitor?.isNativePlatform?.() || /^(capacitor|ionic):$/.test(location.protocol);
-if (!native && 'serviceWorker' in navigator && window.isSecureContext) {
+// WEB app updates apply before the next game, never during a match.
+if ( 'serviceWorker' in navigator && window.isSecureContext) {
   let reloading = false;
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     if (reloading) return;

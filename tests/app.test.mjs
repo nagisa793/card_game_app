@@ -1,7 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
-import { execFileSync } from 'node:child_process';
 import vm from 'node:vm';
 import { JSDOM } from 'jsdom';
 import { inventory } from '../scripts/files.mjs';
@@ -77,21 +76,10 @@ test('offline BGM serves proper byte ranges and rejects an invalid range', async
   assert.equal((await response).status, 416);
 });
 
-test('native orientation configuration remains valid after repeated Capacitor sync', async () => {
-  execFileSync('node', ['scripts/configure-native.mjs']);
-  const paths = ['android/app/src/main/AndroidManifest.xml', 'ios/App/App/Info.plist', 'ios/App/App.xcodeproj/project.pbxproj'];
-  const before = await Promise.all(paths.map(file => readFile(file, 'utf8')));
-  execFileSync('node', ['scripts/configure-native.mjs']);
-  assert.deepEqual(await Promise.all(paths.map(file => readFile(file, 'utf8'))), before);
-  assert.match(before[0], /screenOrientation="sensorLandscape"/);
-  assert.match(before[1], /UIInterfaceOrientationLandscapeLeft/);
-  assert.match(before[1], /UIInterfaceOrientationLandscapeRight/);
-  assert.doesNotMatch(before[1], /<string>UIInterfaceOrientationPortrait/);
-  const plist = new JSDOM(before[1], { contentType: 'text/xml' });
-  const rootKeys = [...plist.window.document.querySelector('plist > dict').children];
-  for (const key of ['UIRequiresFullScreen', 'UIStatusBarHidden']) {
-    assert.equal(rootKeys.find(node => node.localName === 'key' && node.textContent === key)?.nextElementSibling?.localName, 'true');
-  }
-  plist.window.close();
-  assert.match(before[2], /IPHONEOS_DEPLOYMENT_TARGET = 17\.0;/);
+test('WEB app manifest uses standalone landscape display', async () => {
+  const manifest = JSON.parse(await readFile('www/manifest.webmanifest', 'utf8'));
+  assert.equal(manifest.display, 'standalone');
+  assert.equal(manifest.orientation, 'landscape');
+  assert.equal(manifest.start_url, './');
+  assert.equal(manifest.scope, './');
 });

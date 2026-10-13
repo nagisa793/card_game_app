@@ -1,0 +1,7 @@
+{
+  "provider": "Sites",
+  "project_id": "appgprj_6ace37ea4f8081919a6668af84fe163b",
+  "url": "https://duel-arena-app.nagisa793.chatgpt.site",
+  "build_directory": "www",
+  "site_static_directory": "dist"
+}
