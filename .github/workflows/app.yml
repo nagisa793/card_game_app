@@ -95,6 +95,35 @@ jobs:
           path: www/
           retention-days: 30
 
+  github-pages:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Download the verified game
+        uses: actions/download-artifact@v4
+        with:
+          name: duel-arena-app-web
+          path: www
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+      - name: Upload the verified game to Pages
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: www
+      - name: Publish the game URL
+        id: deployment
+        uses: actions/deploy-pages@v4
+
   mac-runtime:
     needs: prepare
     if: needs.prepare.outputs.build == 'true'
