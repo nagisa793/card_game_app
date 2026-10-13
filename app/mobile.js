@@ -30,7 +30,7 @@ function compactMenu(container, panel, id, label) {
   panel.addEventListener('click', event => {
     const button = event.target.closest('button');
     if (button && !button.disabled) setOpen(false);
-  });
+  }, { capture: true });
   menus.push({ container, panel, toggle, setOpen });
 }
 

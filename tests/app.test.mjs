@@ -52,6 +52,27 @@ test('landscape viewport follows real pixels and cancelled touches do not activa
   dom.window.close();
 });
 
+test('start controls close their corner menu even when the original startup handler stops propagation', async () => {
+  const dom = new JSDOM('<body class="duelApp"><div class="top-bar"><div><button id="autoStartBtn">COM同士を観戦</button><button id="undoBtn" disabled>一つ戻る</button></div></div><div id="battleStage"><nav class="boardDock"><button>履歴</button></nav></div></body>', { url: 'https://test.invalid', runScripts: 'outside-only' });
+  const w = dom.window;
+  w.requestAnimationFrame = callback => { callback(); return 1; };
+  const originalStart = w.document.getElementById('autoStartBtn');
+  let starts = 0;
+  originalStart.addEventListener('click', event => { starts++; event.stopImmediatePropagation(); }, { capture: true });
+  w.eval((await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function'));
+  const toggle = w.document.getElementById('appTopMenuToggle');
+  const panel = w.document.getElementById('appTopMenu');
+  toggle.click();
+  assert.equal(panel.hidden, false);
+  w.document.getElementById('undoBtn').click();
+  assert.equal(panel.hidden, false);
+  originalStart.click();
+  assert.equal(starts, 1);
+  assert.equal(panel.hidden, true);
+  assert.equal(w.document.getElementById('autoStartBtn'), originalStart);
+  dom.window.close();
+});
+
 test('offline BGM serves proper byte ranges and rejects an invalid range', async () => {
   const listeners = {};
   const source = (await readFile('scripts/service-worker.template.js', 'utf8'))
