@@ -25,6 +25,7 @@ for (const size of [{ width: 844, height: 390 }, { width: 740, height: 360 }, { 
     await page.locator('#cardCatalogClose').click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(errors).toEqual([]);
+    await page.screenshot({ path: `test-results/landscape-${size.width}.png` });
   });
 }
 
@@ -50,6 +51,7 @@ test('a finger selects a hand card and summons it into the actual highlighted fi
   expect(slotBox.x + slotBox.width).toBeLessThan(844);
   await slot.tap();
   await expect(page.locator('#ownBattle .slot.char')).toHaveCount(1);
+  await page.screenshot({ path: 'test-results/landscape-summon.png' });
   const ownHand = await page.locator('#ownHand').boundingBox();
   expect(ownHand.y + ownHand.height).toBeLessThanOrEqual(390);
   const confirm = page.locator('#deckActions button').first();

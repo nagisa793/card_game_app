@@ -63,6 +63,13 @@ jobs:
             playwright-report/
             test-results/
           if-no-files-found: ignore
+      - name: Keep landscape previews for visual verification
+        uses: actions/upload-artifact@v4
+        if: success() && steps.need.outputs.build == 'true'
+        with:
+          name: landscape-previews
+          path: test-results/*.png
+          retention-days: 14
       - name: Commit validated WEB copy to the APP repository
         id: commit
         if: steps.need.outputs.build == 'true'
@@ -101,7 +108,10 @@ jobs:
         with:
           distribution: temurin
           java-version: '21'
-      - uses: android-actions/setup-android@v3
+      - uses: android-actions/setup-android@v4
+        with:
+          packages: 'platform-tools platforms;android-36 build-tools;36.0.0'
+          log-accepted-android-sdk-licenses: false
       - run: npm ci
       - run: npm run native:sync
       - name: Build Android APK

@@ -25,6 +25,5 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
 final class GameViewController: CAPBridgeViewController {
     override var prefersStatusBarHidden: Bool { true }
-    override var prefersHomeIndicatorAutoHidden: Bool { true }
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask { .landscape }
 }

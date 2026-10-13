@@ -5,6 +5,9 @@
   "backgroundColor": "#070f14",
   "loggingBehavior": "debug",
   "zoomEnabled": false,
+  "plugins": {
+    "SystemBars": { "hidden": true, "animation": "NONE" }
+  },
   "android": {
     "backgroundColor": "#070f14",
     "minWebViewVersion": 110,
