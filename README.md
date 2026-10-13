@@ -1,7 +1,17 @@
-# DUEL ARENA — localhost WEBアプリ
+# DUEL ARENA — GitHubで遊ぶWEBアプリ
 
-ゲーム本体・画像・音源を手元に置き、ブラウザで遊ぶWEBアプリです。
-入口は **http://localhost:8766/** です。元のWEB版のルール・カード・盤面・演出・操作を維持し、スマホの横向き表示を `app/` に追加しています。
+GitHub Pagesの公開先は **https://nagisa793.github.io/card_game_app/** です。
+公開設定後は、このURLをSafariまたはChromeで開き、スマホを横向きにして遊べます。ダウンロードやMacの起動は不要です。
+元のWEB版のルール・カード・盤面・演出・操作を維持し、スマホの横向き表示を `app/` に追加しています。
+
+## GitHub Pagesの公開設定
+
+リポジトリの **Settings → Pages → Build and deployment → Source** を **GitHub Actions** に設定してください。
+**Actions → Sync WEB app → Run workflow** を実行すると、検証済みの `www/` がGitHub Pagesに公開されます。
+以降はWEB更新を自動取り込みし、同じURLへ公開します。対戦中に強制リロードはしません。
+公開内容の元WEBコミットは `version.json` で確認できます。
+
+以下のMac用localhost機能は、手元で起動したい場合の補助機能です。
 
 ## Macで起動する
 
