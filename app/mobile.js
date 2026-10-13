@@ -2,6 +2,94 @@
 // Only the WEB app viewport and browser lifecycle are handled here.
 const body = document.body;
 const stage = document.getElementById('battleStage');
+const menus = [];
+let fittedArena;
+
+function compactMenu(container, panel, id, label) {
+  panel.id = id;
+  panel.classList.add('appMenuPanel');
+  panel.hidden = true;
+  const toggle = document.createElement('button');
+  toggle.id = id + 'Toggle';
+  toggle.type = 'button';
+  toggle.className = 'appMenuToggle';
+  toggle.setAttribute('aria-controls', id);
+  const setOpen = open => {
+    panel.hidden = !open;
+    toggle.textContent = open ? '▶️' : '◀️';
+    toggle.setAttribute('aria-expanded', String(open));
+    toggle.setAttribute('aria-label', label + (open ? 'を閉じる' : 'を開く'));
+  };
+  setOpen(false);
+  container.append(toggle);
+  toggle.addEventListener('click', () => {
+    const open = panel.hidden;
+    for (const menu of menus) menu.setOpen(false);
+    setOpen(open);
+  });
+  panel.addEventListener('click', event => {
+    const button = event.target.closest('button');
+    if (button && !button.disabled) setOpen(false);
+  });
+  menus.push({ container, panel, toggle, setOpen });
+}
+
+// Move the original controls, retaining their IDs, listeners, disabled states,
+// and the spectator pause button. No duplicate game actions are created.
+function prepareAppLayout() {
+  const bar = document.querySelector('.top-bar');
+  if (bar && !document.getElementById('appTopMenu')) {
+    const panel = bar.querySelector(':scope > div');
+    if (panel) compactMenu(bar, panel, 'appTopMenu', 'ゲームメニュー');
+  }
+  const dock = stage?.querySelector('.boardDock');
+  if (dock && !document.getElementById('appBottomMenu')) {
+    const panel = document.createElement('div');
+    panel.append(...dock.children);
+    dock.append(panel);
+    compactMenu(dock, panel, 'appBottomMenu', '操作・履歴メニュー');
+  }
+  const phase = document.querySelector('.metaBar');
+  if (phase && stage && phase.parentElement !== stage) stage.append(phase);
+
+  const arena = window.DuelArena;
+  if (arena?.camera && arena !== fittedArena) {
+    const originalResize = arena.resize;
+    arena.resize = function (...args) {
+      const rect = this.canvas.parentElement.getBoundingClientRect();
+      // Zoom the real orthographic camera, shared by the artwork, labels and
+      // raycaster. Smaller phones retain room for both hands and side panels.
+      const landscape = rect.width > rect.height && rect.height <= 650;
+      const desired = Math.min(1.24, Math.max(1.06, 1.06 + (rect.height - 320) * .0016));
+      const sideRoom = (rect.width - 176) / (rect.height * 14.9 / 15.2);
+      this.camera.zoom = landscape ? Math.max(1, Math.min(desired, sideRoom)) : 1;
+      return originalResize.apply(this, args);
+    };
+    fittedArena = arena;
+    arena.resize();
+  }
+  if (bar && dock) body.classList.add('appCompactUI');
+  return !!(bar && dock && fittedArena);
+}
+
+document.addEventListener('click', event => {
+  for (const menu of menus) {
+    if (!menu.container.contains(event.target)) menu.setOpen(false);
+  }
+});
+document.addEventListener('keydown', event => {
+  if (event.key !== 'Escape') return;
+  const open = menus.find(menu => !menu.panel.hidden);
+  if (open) { open.setOpen(false); open.toggle.focus(); }
+});
+// boot.js imports the renderer asynchronously. Watch until its dock and camera
+// exist, then stop observing the DOM; gameplay does not rebuild these menus.
+if (!prepareAppLayout() && stage) {
+  const startupObserver = new MutationObserver(() => {
+    if (prepareAppLayout()) startupObserver.disconnect();
+  });
+  startupObserver.observe(stage, { childList: true });
+}
 const gate = document.createElement('section');
 gate.id = 'appOrientation';
 gate.setAttribute('role', 'status');
@@ -18,6 +106,7 @@ export function fitAppViewport() {
   body.style.setProperty('--app-width', `${width}px`);
   body.classList.toggle('appPortrait', height > width);
   gate.hidden = width >= height;
+  prepareAppLayout();
   // Let ResizeObserver recalculate real pixel coordinates. No CSS transforms
   // or synthetic clicks are applied to the field or touch coordinates.
   requestAnimationFrame(() => window.DuelArena?.resize?.());

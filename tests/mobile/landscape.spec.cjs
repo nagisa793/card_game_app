@@ -9,22 +9,37 @@ for (const size of [{ width: 844, height: 390 }, { width: 740, height: 360 }, { 
     await page.waitForFunction(() => !!window.DuelArena);
     await expect(page.locator('#appOrientation')).toBeHidden();
     await expect(page.locator('#welcome')).toBeVisible();
+    await expect(page.locator('#appTopMenu')).toBeHidden();
+    await expect(page.locator('#appBottomMenu')).toBeHidden();
+    await expect(page.locator('#appTopMenuToggle')).toHaveText('◀️');
+    await expect(page.locator('#appBottomMenuToggle')).toHaveText('◀️');
     const rect = await page.locator('#battleStage').boundingBox();
     expect(rect.width).toBeLessThanOrEqual(size.width);
     expect(rect.height).toBeLessThanOrEqual(size.height);
     expect(rect.y).toBeGreaterThanOrEqual(0);
-    await page.locator('#rulesBtn').click();
+    await page.locator('#appTopMenuToggle').tap();
+    await page.locator('#rulesBtn').tap();
+    await expect(page.locator('#appTopMenu')).toBeHidden();
     await expect(page.locator('#rulesOverlay')).toBeVisible();
     await page.locator('#rulesCloseBtn').click();
-    await page.locator('#settingsBtn').click();
+    await page.locator('#appTopMenuToggle').tap();
+    await page.locator('#settingsBtn').tap();
     await expect(page.locator('#settingsOverlay')).toBeVisible();
     await page.locator('#settingsCloseBtn').click();
-    await page.locator('#cardCatalogBtn').click();
+    await page.locator('#appTopMenuToggle').tap();
+    await page.locator('#cardCatalogBtn').tap();
     await expect(page.locator('#cardCatalogOverlay')).toBeVisible();
     expect(await page.locator('.catalogCard').count()).toBeGreaterThan(30);
     await page.locator('#cardCatalogClose').click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(errors).toEqual([]);
+    const phase = await page.locator('#phaseBanner').boundingBox();
+    const fieldLeft = await page.evaluate(() => {
+      const stage = document.querySelector('#battleStage');
+      return stage.getBoundingClientRect().left + parseFloat(stage.style.getPropertyValue('--field-left-edge'));
+    });
+    expect(phase.x + phase.width).toBeLessThan(fieldLeft);
+    expect(await page.evaluate(() => window.DuelArena.camera.zoom)).toBeGreaterThan(1);
     await page.screenshot({ path: `test-results/landscape-${size.width}.png` });
   });
 }
@@ -60,4 +75,48 @@ test('a finger selects a hand card and summons it into the actual highlighted fi
     expect(box.width).toBeGreaterThanOrEqual(44);
     expect(box.height).toBeGreaterThanOrEqual(44);
   }
+});
+
+test('both corner menus preserve the original controls during COM spectator playback', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.goto('/');
+  await page.waitForFunction(() => !!window.DuelArena);
+  await page.locator('#appTopMenuToggle').tap();
+  for (const id of ['cardCatalogBtn', 'rulesBtn', 'comStartBtn', 'autoStartBtn', 'settingsBtn', 'undoBtn', 'redoBtn']) {
+    await expect(page.locator(`#appTopMenu #${id}`)).toBeVisible();
+  }
+  await page.locator('#autoStartBtn').tap();
+  await expect(page.locator('#appTopMenu')).toBeHidden();
+  await expect(page.locator('#gameStartOverlay')).toBeHidden({ timeout: 60000 });
+  await page.locator('#appTopMenuToggle').tap();
+  await page.locator('#autoPauseBtn').tap();
+  await expect(page.locator('#appTopMenu')).toBeHidden();
+  await page.locator('#appTopMenuToggle').tap();
+  await expect(page.locator('#autoPauseBtn')).toHaveText('▶ 再生');
+  await page.locator('#undoBtn').tap();
+  await page.locator('#appTopMenuToggle').tap();
+  await expect(page.locator('#autoPauseBtn')).toHaveText('▶ 再生');
+  await page.locator('#redoBtn').tap();
+  await page.locator('#appBottomMenuToggle').tap();
+  await expect(page.locator('#appTopMenu')).toBeHidden();
+  await expect(page.locator('#appBottomMenu')).toBeVisible();
+  await page.locator('#appBottomMenu button[aria-controls="controls"]').tap();
+  await expect(page.locator('#appBottomMenu')).toBeHidden();
+  await expect(page.locator('#controls')).toBeVisible();
+  await page.locator('#appBottomMenuToggle').tap();
+  await page.locator('#appBottomMenu button[aria-controls="historyArea"]').tap();
+  await expect(page.locator('#historyArea')).toBeVisible();
+  await page.locator('#appBottomMenuToggle').tap();
+  await page.locator('#chainToggleBtn').tap();
+  await expect(page.locator('#chainHistoryShell')).toBeVisible();
+  await page.locator('#appBottomMenuToggle').tap();
+  await page.locator('#chainToggleBtn').tap();
+  await expect(page.locator('#chainHistoryShell')).toBeHidden();
+  const phase = await page.locator('#phaseBanner').boundingBox();
+  const fieldLeft = await page.evaluate(() => {
+    const stage = document.querySelector('#battleStage');
+    return stage.getBoundingClientRect().left + parseFloat(stage.style.getPropertyValue('--field-left-edge'));
+  });
+  expect(phase.x + phase.width).toBeLessThan(fieldLeft);
+  await page.screenshot({ path: 'test-results/landscape-spectator-compact.png' });
 });

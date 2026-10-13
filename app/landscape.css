@@ -10,6 +10,62 @@ body.duelApp {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+
+/* Only the two corner arrows remain visible over the APP arena. The panels
+   contain the original controls, including undo/redo and spectator pause. */
+body.duelApp .appMenuPanel[hidden] { display: none !important; }
+body.duelApp.appCompactUI .appMenuToggle {
+  width: 44px; height: 44px; min-width: 44px; min-height: 44px;
+  padding: 0 !important; border: 1px solid #96c7c280; border-radius: 5px;
+  background: #132632eF; color: #eff8f3; font-size: 20px !important;
+  display: inline-flex; align-items: center; justify-content: center;
+}
+body.duelApp .appMenuToggle:focus-visible { outline: 2px solid #f4eec6; outline-offset: 2px; }
+body.duelApp.appCompactUI .top-bar {
+  left: auto; right: calc(var(--app-right) + 6px); top: calc(var(--app-top) + 4px);
+  width: 44px; height: 44px; min-height: 44px; padding: 0; background: transparent;
+}
+body.duelApp.appCompactUI .top-bar .brand { display: none; }
+body.duelApp #appTopMenu {
+  position: absolute; right: 50px; top: 0; flex: none;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr));
+  width: min(300px, calc(var(--app-width, 100vw) - var(--app-left) - var(--app-right) - 68px));
+  max-height: calc(var(--app-height, 100dvh) - var(--app-top) - var(--app-bottom) - 12px);
+  box-sizing: border-box; min-width: 0; gap: 4px; padding: 6px;
+  overflow: auto; overscroll-behavior: contain;
+  background: #102332f5; border: 1px solid #96c7c280; border-radius: 5px;
+}
+body.duelApp #appTopMenu .historyControls { display: contents; }
+body.duelApp #appTopMenu button,
+body.duelApp #appBottomMenu button {
+  min-height: 44px; width: 100%; margin: 0;
+  font-size: 11px !important; padding: 6px 8px !important;
+  white-space: normal; line-height: 1.35;
+}
+body.duelApp.appCompactUI .boardDock {
+  display: block; right: 6px; bottom: 4px; width: 44px; height: 44px;
+}
+body.duelApp #appBottomMenu {
+  position: absolute; right: 50px; bottom: 0;
+  display: grid; grid-template-columns: 1fr; width: 150px; gap: 4px; padding: 6px;
+  max-height: calc(var(--app-height, 100dvh) - 12px); overflow-y: auto;
+  background: #102332f5; border: 1px solid #96c7c280; border-radius: 5px;
+}
+/* The phase text lives in the stage's left margin. Its width follows the real
+   projected stone slab edge, so long COM phases wrap without covering it. */
+body.duelApp.appCompactUI .metaBar {
+  position: absolute; top: 6px; left: 6px; right: auto;
+  width: max(0px, calc(var(--field-left-edge, 25%) - 12px));
+  height: auto; min-height: 0; padding: 0; pointer-events: auto;
+}
+body.duelApp.appCompactUI #phaseBanner {
+  width: 100%; max-width: 100%; box-sizing: border-box;
+  white-space: normal; overflow-wrap: anywhere; font-size: 10px; line-height: 1.45;
+  max-height: min(150px, 35vh); overflow-y: auto;
+}
+@media (orientation: landscape) and (max-height: 650px) {
+  body.duelApp.appCompactUI #oppHand { top: 4px; }
+}
 body.duelApp .battleLayout,
 body.duelApp.historyCollapsed .battleLayout {
   inset: var(--app-top) var(--app-right) var(--app-bottom) var(--app-left);
