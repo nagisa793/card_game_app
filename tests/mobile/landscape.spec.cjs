@@ -54,32 +54,43 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
     };
   });
   await page.addInitScript(() => {
-    // Deterministic deck and first-player selection only in the test browser.
-    Math.random = () => 0.1;
+    // Repeat the deck and first-player choices, but keep values distinct:
+    // Three.js also uses Math.random to assign unique material/texture UUIDs.
+    let calls = 0;
+    Math.random = () => .1 + (++calls % 65536) / 65536000;
   });
   await page.goto('/');
   await page.waitForFunction(() => !!window.DuelArena);
   await page.locator('#welcome [data-start-mode="com"]').tap();
   await expect(page.locator('#ownHand .card.type-character').first()).toBeVisible({ timeout: 60000 });
-  if (renderer === 'WebGL') console.log('APP backdrop diagnostic', await page.evaluate(async () => {
-    const a = window.DuelArena, T = await import('./vendor/three.module.js');
-    await a.backgroundReadyPromise;
-    const pixels = [];
-    const photos = a.fixed.children.filter(mesh => mesh.material.map);
-    const photo = photos.find(mesh => mesh.material.map.image.src.includes('photoreal'));
-    const image = photo.material.map.image;
-    const sample = document.createElement('canvas');
-    sample.width = image.width; sample.height = image.height;
-    const ctx = sample.getContext('2d'); ctx.drawImage(image, 0, 0);
-    for (const [u, v] of [[.3, .3], [.4, .4], [.5, .5], [.6, .6], [.7, .7]]) {
-      const point = new T.Vector3((u - .5) * 24.32, (v - .5) * 15.2, -60).applyQuaternion(a.camera.quaternion).add(a.camera.position).project(a.camera);
-      const x = Math.floor((point.x + 1) * a.staticBackground.width / 2), y = Math.floor((point.y + 1) * a.staticBackground.height / 2);
-      const rgba = new Uint8Array(4);
-      a.renderer.readRenderTargetPixels(a.staticBackground, x, y, 1, 1, rgba);
-      pixels.push({ uv: [u, v], xy: [x, y], actual: [...rgba], original: [...ctx.getImageData(Math.floor(u * image.width), Math.floor((1 - v) * image.height), 1, 1).data] });
-    }
-    return { pixels, camera: a.camera.toJSON(), photos: photos.map(mesh => ({ url: mesh.material.map.image.src, complete: mesh.material.map.image.complete, visible: mesh.visible, opacity: mesh.material.opacity, depthTest: mesh.material.depthTest, cull: mesh.frustumCulled, positions: [...mesh.geometry.attributes.position.array] })), programs: a.renderer.info.programs.map(p => p.diagnostics || { name: p.name }), glError: a.renderer.getContext().getError() };
-  }));
+  if (renderer === 'WebGL') {
+    const photoError = await page.evaluate(async () => {
+      const arena = window.DuelArena;
+      await arena.backgroundReadyPromise;
+      const photo = arena.fixed.children.find(mesh => mesh.material.map?.image.src.includes('arena-photoreal-'));
+      if (!photo) throw new Error('The original central board photograph is missing');
+      const target = arena.staticBackground, camera = arena.camera;
+      const expected = document.createElement('canvas');
+      expected.width = target.width; expected.height = target.height;
+      const ctx = expected.getContext('2d');
+      const width = target.width * 24.32 * camera.zoom / (camera.right - camera.left);
+      const height = target.height * 15.2 * camera.zoom / (camera.top - camera.bottom);
+      ctx.drawImage(photo.material.map.image, (target.width - width) / 2, (target.height - height) / 2, width, height);
+      const linear = value => value <= .04045 ? value / 12.92 : ((value + .055) / 1.055) ** 2.4;
+      const srgb = value => value <= .0031308 ? value * 12.92 : 1.055 * value ** (1 / 2.4) - .055;
+      const color = photo.material.color.toArray();
+      let error = 0, count = 0;
+      for (const [u, v] of [[.3, .3], [.4, .4], [.5, .5], [.6, .6], [.7, .7]]) {
+        const x = Math.floor(target.width / 2 + (u - .5) * width);
+        const y = Math.floor(target.height / 2 + (v - .5) * height);
+        const original = ctx.getImageData(x, y, 1, 1).data, actual = new Uint8Array(4);
+        arena.renderer.readRenderTargetPixels(target, x, target.height - 1 - y, 1, 1, actual);
+        for (let c = 0; c < 3; c++) { error += Math.abs(actual[c] - srgb(linear(original[c] / 255) * color[c]) * 255); count++; }
+      }
+      return error / count;
+    });
+    expect(photoError, 'The visible original photograph must match the enlarged camera and tap coordinates').toBeLessThan(25);
+  }
   const card = page.locator('#ownHand .card.type-character').first();
   const name = await card.getAttribute('data-inspect-title');
   await card.tap();
