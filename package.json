@@ -8,7 +8,9 @@
     "build": "node scripts/build-web.mjs",
     "sync:web": "node scripts/sync-web.mjs",
     "test": "node --test tests/app.test.mjs && node tests/rules-regression.cjs && node tests/audio-startup.cjs",
-    "check": "npm run build && npm test"
+    "check": "npm run build && npm test",
+    "start": "python3 local_web.py",
+    "test:local": "python3 tests/local-web.py"
   },
   "devDependencies": {
     "@playwright/test": "1.64.0",

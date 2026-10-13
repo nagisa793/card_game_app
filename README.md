@@ -1,52 +1,56 @@
-# DUEL ARENA — スマホ横向きWEBアプリ
+# DUEL ARENA — localhost WEBアプリ
 
-## ローカルで起動する
+ゲーム本体・画像・音源を手元に置き、ブラウザで遊ぶWEBアプリです。
+入口は **http://localhost:8766/** です。元のWEB版のルール・カード・盤面・演出・操作を維持し、スマホの横向き表示を `app/` に追加しています。
 
-GitHubの「Code → Download ZIP」で初回だけダウンロードして展開します。
-Macで `Start_card_game.command` を開くとローカルWEBサーバーとブラウザが起動します。Python 3が必要です。Node.jsやnpmは起動に不要です。
+## Macで起動する
 
-MacのURL: **http://localhost:8766/**
+1. [起動環境を同梱したZIPをダウンロード](https://github.com/nagisa793/card_game_app/releases/latest/download/DUEL-ARENA-local-mac.zip)します。
+2. ZIPを展開し、`DUEL-ARENA` フォルダー内の **Start_card_game.command** を開きます。
+3. ブラウザで **http://localhost:8766/** が自動で開きます。
 
-iPhoneはMacと同じWi-Fiに接続し、起動したウィンドウに表示される `http://MacのIPアドレス:8766/` をSafariで開きます。
-スマホを横向きにすると遊べます。Macのサーバーを起動している間はローカルURLで利用できます。
-iPhone上の `localhost` はiPhone自身なのでMacへの接続用URLにはなりません。
-ゲーム・画像・音源はMac内のファイルから配信します。初回ダウンロード後のゲーム起動にインターネットは不要です。
-起動中はGitHubの更新を確認して自動で取り込みます。毎回のダウンロードや入れ替えは不要です。
+Python、Node.js、npmのインストールは不要です。Apple Silicon／Intelの判別は起動ファイルが自動で行います。
+起動したウィンドウを開いている間、ゲームを利用できます。閉じるとサーバーは停止します。
+もう一度起動ファイルを開いた場合は、起動済みのゲームを開きます。
+初回ダウンロード後はインターネットがなくてもゲーム・画像・音源を利用できます。
 
-公開プレビュー: https://duel-arena-app.nagisa793.chatgpt.site/
-この公開プレビューはlocalhostや自宅内IPのURLではありません。
-
-カードや光る枠をタップして選択し、山札上のボタンで決定・キャンセル・パスします。
-手札と上部メニューは横に、長いカード説明と選択一覧は縦にスクロールできます。
-
-元のWEB版は [nagisa793/card_game](https://github.com/nagisa793/card_game)。
-ルール・カード・盤面・画像・音源・フェーズ演出・操作を引き継いでいます。
-このリポジトリはブラウザで遊ぶWEBアプリです。
+このURLは、起動ファイルを開いたMac自身を指します。GitHub上で作成しただけで手元のMacのサーバーが起動することはありません。
 
 ## 更新
 
-GitHub Actionsが元のWEB版のmainを読み取り、変更があればAPP側だけへコピーします。
-テストが通った同じビルドをAPPの公開確認でURLへ反映します。元のWEB版へ書き込む処理はありません。
-`web/` は元の `dist/` の完全コピーです。取り込みコミットと全ファイルのSHA-256を `upstream.json` に記録します。
-スマホ用の変更は `app/` に保存するためWEB更新で上書きされません。
-対戦中の更新でゲームを再読み込みせず、次に開いたときに最新版を取り込みます。
-画像・音源を含むキャッシュの準備が完了した後はオフラインでも利用できます。
+- APPリポジトリ内のGitHub Actionsが元WEBのmainを読み取り、`dist/` をAPPの `web/` へコピーします。
+- ルール・ハッシュ・音源・localhost起動・横向きのタップ操作を検証してから、Mac用の配布ZIPをGitHub Releasesに掲載します。
+- 起動中のローカルサーバーはGitHub APP最新版を確認してゲームを自動で保存します。毎回のダウンロードやファイルの入れ替えは不要です。
+- 更新の保存中や接続失敗時も、読み込み済みの完全なゲームを使い続けます。対戦中に更新のための再読み込みは行いません。
 
-## 開発
+取り込んだWEBコミットと全原本のSHA-256は `upstream.json` に記録します。
+スマホ用の変更・ユーザー編集は `app/` に保持します。元の [nagisa793/card_game](https://github.com/nagisa793/card_game) へ書き込む処理はありません。
 
-Node.js 22以上:
+## スマホの操作
+
+横向きで、カードや光る枠をタップして選択し、山札上のボタンで決定・キャンセル・パスします。
+手札と上部メニューは横に、長いカード説明と選択一覧は縦にスクロールできます。
+
+スマホの `localhost` はスマホ自身です。このMac用パッケージを起動したMacの `localhost` に、スマホから直接接続することはできません。
+同じWi-Fi内のスマホからMacへ接続する補助機能は、開発時に `python3 local_web.py --host 0.0.0.0` で起動できます。その場合は表示されたMacのIPのURLを使い、Macの起動も必要です。
+
+## 開発者用：GitHubのソースから起動
+
+ソースをダウンロードした場合はPython 3で起動できます。配布ZIPにはPythonの起動環境を同梱しています。
+
+```sh
+python3 local_web.py
+```
+
+Node.js 22以上での検証：
 
 ```sh
 npm ci
-npm run sync:web
 npm run check
+python3 tests/local-web.py
+python3 tests/local-launch.py
 ```
 
-公開用フォルダーは `www/` です。ローカル確認:
-
-```sh
-python3 -m http.server 8000 --bind 127.0.0.1 --directory www
-```
-
-ブラウザで `http://127.0.0.1:8000/` を開きます。
-素材・音源・同梱ライブラリのライセンス表示は原本のものを維持しています。
+`npm start` でもlocalhostを起動できます。公開用のビルド出力は `www/` です。
+既存の公開確認用URLは `publication.json` に記録しています。localhostでの起動には使用しません。
+素材・音源・同梱ライブラリのライセンス表示は原本のものを維持しています。起動環境のライセンスは配布ZIPの `licenses/` に含めます。

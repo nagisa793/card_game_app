@@ -49,6 +49,7 @@ jobs:
         run: |
           npm run check
           python3 tests/local-web.py
+          python3 tests/local-launch.py
         if: steps.need.outputs.build == 'true'
       - name: Install Chromium for mobile layout tests
         run: npx playwright install --with-deps chromium
@@ -94,3 +95,87 @@ jobs:
           path: www/
           retention-days: 30
 
+  mac-runtime:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            architecture: macos-arm64
+          - runner: macos-15-intel
+            architecture: macos-x64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Install the pinned server packaging tools
+        run: python3 -m pip install -r requirements-local-build.txt
+      - name: Bundle the localhost server runtime
+        run: python3 -m PyInstaller --clean --noconfirm --onedir --name game-server --distpath build/runtime --workpath build/pyinstaller --specpath build --collect-data certifi local_web.py
+      - name: Package original game assets and the Mac launcher
+        env:
+          APP_COMMIT: ${{ needs.prepare.outputs.ref }}
+          MAC_ARCH: ${{ matrix.architecture }}
+        run: python3 scripts/package-local.py --output build/local/DUEL-ARENA --runtime build/runtime/game-server --architecture "$MAC_ARCH" --commit "$APP_COMMIT"
+      - name: Start the actual bundled WEB app at localhost
+        run: python3 tests/local-launch.py --bundle build/local/DUEL-ARENA
+      - name: Keep the tested runtime with executable permissions
+        env:
+          MAC_ARCH: ${{ matrix.architecture }}
+        run: tar --exclude='DUEL-ARENA/.local' -czf "$MAC_ARCH.tar.gz" -C build/local DUEL-ARENA
+      - uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ matrix.architecture }}
+          path: ${{ matrix.architecture }}.tar.gz
+          retention-days: 14
+
+  localhost-release:
+    needs: [prepare, mac-runtime]
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: runtime-macos-*
+          merge-multiple: true
+          path: build/downloads
+      - name: Combine both tested Mac runtimes into one download
+        run: |
+          mkdir -p release
+          for archive in build/downloads/*.tar.gz; do
+            tar -xzf "$archive" -C release
+          done
+          python3 scripts/verify-local-package.py release/DUEL-ARENA
+          cd release
+          zip -qry DUEL-ARENA-local-mac.zip DUEL-ARENA
+          sha256sum DUEL-ARENA-local-mac.zip > SHA256SUMS.txt
+      - name: Publish the tested localhost WEB app to GitHub Releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          APP_COMMIT: ${{ needs.prepare.outputs.ref }}
+        run: |
+          latest=$(gh api "repos/$GITHUB_REPOSITORY/commits/main" --jq .sha)
+          if [ "$latest" != "$APP_COMMIT" ]; then
+            echo 'A newer APP commit exists; its workflow will publish the next release.'
+            exit 0
+          fi
+          version=$(python3 -c 'import json; print(json.load(open("upstream.json"))["webVersion"])')
+          tag="local-web-${APP_COMMIT:0:12}"
+          python3 scripts/release-notes.py > release/NOTES.md
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" release/DUEL-ARENA-local-mac.zip release/SHA256SUMS.txt --clobber
+            gh release edit "$tag" --notes-file release/NOTES.md --latest
+          else
+            gh release create "$tag" release/DUEL-ARENA-local-mac.zip release/SHA256SUMS.txt --target "$APP_COMMIT" --title "DUEL ARENA localhost WEB v$version" --notes-file release/NOTES.md --latest
+          fi

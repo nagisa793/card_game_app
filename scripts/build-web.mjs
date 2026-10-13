@@ -31,7 +31,7 @@ await writeFile(path.join(output, 'manifest.webmanifest'), JSON.stringify({
   display: 'standalone', orientation: 'landscape', background_color: '#070f14', theme_color: '#070f14',
   icons: [192, 512].map(size => ({ src: `./app/icon-${size}.png`, sizes: `${size}x${size}`, type: 'image/png', purpose: 'any' }))
 }, null, 2) + '\n');
-const builtFiles = await inventory(output);
+const builtFiles = Object.fromEntries(Object.entries(await inventory(output)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
 const cached = Object.keys(builtFiles).map(file => './' + file);
 const appRevision = createHash('sha256').update(JSON.stringify(builtFiles)).digest('hex').slice(0, 16);
 const sw = (await readFile(path.join(root, 'scripts/service-worker.template.js'), 'utf8'))
