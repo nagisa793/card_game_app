@@ -1,0 +1,124 @@
+/* APP-only overrides. The original WEB files are kept byte-for-byte in web/. */
+body.duelApp {
+  --app-left: env(safe-area-inset-left, 0px);
+  --app-right: env(safe-area-inset-right, 0px);
+  --app-top: env(safe-area-inset-top, 0px);
+  --app-bottom: env(safe-area-inset-bottom, 0px);
+  height: var(--app-height, 100dvh);
+  overscroll-behavior: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+body.duelApp .battleLayout,
+body.duelApp.historyCollapsed .battleLayout {
+  inset: var(--app-top) var(--app-right) var(--app-bottom) var(--app-left);
+  width: auto;
+  height: calc(var(--app-height, 100dvh) - var(--app-top) - var(--app-bottom));
+}
+body.duelApp .top-bar {
+  left: var(--app-left);
+  right: var(--app-right);
+  top: var(--app-top);
+}
+body.duelApp .metaBar { left: calc(var(--app-left) + 8px); }
+body.duelApp button { touch-action: manipulation; }
+body.duelApp img { -webkit-touch-callout: none; }
+body.duelApp .handRow,
+body.duelApp .decisionBody,
+body.duelApp .selectionPanelContent,
+body.duelApp .boardCardText,
+body.duelApp .rulesBody,
+body.duelApp .cardCatalogBody,
+body.duelApp .log { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
+body.duelApp #boardCardPreview .boardCardText { pointer-events: auto; touch-action: pan-y; }
+#appOrientation { display: none; }
+body.appPortrait #appOrientation {
+  position: fixed; inset: 0; z-index: 2000; display: flex;
+  align-items: center; justify-content: center; flex-direction: column; gap: 18px;
+  padding: 24px; background: #07111df5; color: #f0f4eb; text-align: center;
+}
+#appOrientation strong { font-size: 25px; letter-spacing: .14em; }
+#appOrientation p { margin: 0; font-size: 18px; }
+#appOrientation span { font-size: 12px; line-height: 1.7; }
+@media (orientation: landscape) and (max-height: 650px) {
+  body.duelApp .top-bar { height: 44px; min-height: 44px; padding: 0 6px; flex-wrap: nowrap; }
+  body.duelApp .brand { display: inline-flex; flex: 0 0 auto; font-size: 11px; }
+  body.duelApp .top-bar > div { min-width: 0; width: auto; flex: 1; overflow-x: auto; overflow-y: hidden; gap: 4px; scrollbar-width: none; }
+  body.duelApp .top-bar > div::-webkit-scrollbar { display: none; }
+  body.duelApp .top-bar button { flex: 0 0 auto; min-height: 40px; font-size: 10px !important; padding: 6px 8px !important; white-space: nowrap; }
+  body.duelApp .historyControls { flex: 0 0 auto; }
+  body.duelApp #scoreText { flex: 0 0 auto; font-size: 10px; }
+  body.duelApp .metaBar { top: calc(var(--app-top) + 44px); height: 16px; right: auto; }
+  body.duelApp #phaseBanner { max-width: 28vw; font-size: 9px; line-height: 1.35; white-space: normal; }
+  body.duelApp #ownHand,
+  body.duelApp #oppHand {
+    box-sizing: border-box;
+    left: max(16%, calc(var(--field-left-edge, 25%) - 16px));
+    width: calc(var(--field-right-edge, 75%) - var(--field-left-edge, 25%) + 32px) !important;
+    gap: 4px; justify-content: safe center; touch-action: pan-x;
+  }
+  body.duelApp #ownHand { bottom: 2px; height: 78px !important; padding: 18px 4px 4px; }
+  body.duelApp #ownHand .card,
+  body.duelApp #ownHand .cardBack[data-shared-back="true"] { width: 40px !important; min-width: 40px !important; height: 56px !important; }
+  body.duelApp #oppHand { top: 44px; height: 44px !important; padding: 3px 4px; }
+  body.duelApp #oppHand .card,
+  body.duelApp #oppHand .cardBack { width: 26px !important; min-width: 26px !important; height: 37px !important; }
+  body.duelApp #ownHandLabel,
+  body.duelApp #oppHandLabel { display: none; }
+  body.duelApp #chainHistoryShell {
+    display: flex; left: 6px; top: 64px; bottom: 46px;
+    width: max(88px, calc(var(--field-left-edge, 25%) - 12px));
+    padding: 6px; font-size: 10px;
+  }
+  body.duelApp #chainHistoryShell.collapsed { display: none !important; }
+  body.duelApp .chainPanelHeading { font-size: 11px; }
+  body.duelApp .chainHistoryPanel #chainPanel .chainItem { min-height: 0 !important; padding: 6px !important; margin-bottom: 6px; font-size: 10px; line-height: 1.4; }
+  body.duelApp .chainHistoryPanel #chainPanel .activeChainItem::before { display: none; }
+  body.duelApp .chainHistoryPanel #chainPanel .chainCardName { font-size: 11px; margin-top: 4px; }
+  body.duelApp .chainHistoryPanel #chainPanel .chainTarget { font-size: 10px; padding: 4px; }
+  body.duelApp #decisionPanel,
+  body.duelApp #selectionPanel,
+  body.duelApp #pilePanel {
+    position: absolute; left: 6px; top: 64px; bottom: 46px;
+    width: max(88px, calc(var(--field-left-edge, 25%) - 12px));
+    height: auto; max-height: none; transform: none;
+  }
+  body.duelApp #decisionPanel { overflow: hidden; }
+  body.duelApp .decisionBody { overflow-y: auto; min-height: 0; padding: 4px; }
+  body.duelApp .decisionPanelHeader { gap: 4px; padding: 4px; }
+  body.duelApp .decisionPeekButton { min-height: 36px; font-size: 10px; padding: 4px; }
+  body.duelApp #decisionPanel.peeked { bottom: auto; }
+  body.duelApp #decisionPanel button[data-action] { min-height: 44px; font-size: 11px; overflow-wrap: anywhere; }
+  body.duelApp #decisionPanel .activeActionGrid { grid-template-columns: 1fr; }
+  body.duelApp #selectionPanel .selectionCardGrid,
+  body.duelApp #pilePanel .pileCardGrid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  body.duelApp .selectionCard { min-height: 44px; }
+  body.duelApp #boardCardPreview {
+    top: 62px; bottom: 50px; height: auto; max-height: none;
+    left: calc(var(--field-right-edge, 75%) + 6px); right: 6px;
+    width: auto; padding: 6px; gap: 5px;
+  }
+  body.duelApp #boardCardPreview img { width: min(80%, 120px); max-height: 48%; flex: 0 1 auto; }
+  body.duelApp #boardCardPreview .boardCardText { font-size: 11px; line-height: 1.45; min-height: 42px; overflow-y: auto; }
+  body.duelApp #boardCardPreview .boardCardText strong { font-size: 12px; }
+  body.duelApp .boardDock { right: 6px; bottom: 2px; gap: 4px; }
+  body.duelApp .boardDock button { min-height: 44px; min-width: 44px; font-size: 10px; padding: 5px; }
+  body.duelApp .sideColumn { right: 6px; bottom: 50px; width: min(46%, 330px); max-height: 70%; }
+  body.duelApp .sideColumn .controls { max-height: 56vh; }
+  body.duelApp .historyArea { right: 6px; bottom: 50px; width: min(46%, 330px); height: 68%; }
+  body.duelApp #deckActions .deckOrb { min-width: 44px; min-height: 44px; font-size: 10px !important; padding: 3px; }
+  body.duelApp #ownSelectedTacticPreview { left: 18%; bottom: 80px; width: 64%; max-height: 60%; }
+  body.duelApp .rulesOverlay,
+  body.duelApp .settingsOverlay,
+  body.duelApp .cardCatalogOverlay { padding: calc(var(--app-top) + 6px) calc(var(--app-right) + 6px) calc(var(--app-bottom) + 6px) calc(var(--app-left) + 6px); }
+  body.duelApp .rulesDialog,
+  body.duelApp .settingsDialog,
+  body.duelApp .cardCatalogDialog { height: auto; max-height: 100%; }
+  body.duelApp .rulesBody,
+  body.duelApp .settingsBody { min-height: 0; overflow-y: auto; }
+  body.duelApp .cardCatalogGrid { grid-template-columns: repeat(auto-fill, minmax(125px, 1fr)); }
+  body.duelApp .rulesHeader button,
+  body.duelApp .settingsHeader button,
+  body.duelApp .cardCatalogHeader button { min-height: 44px; }
+}

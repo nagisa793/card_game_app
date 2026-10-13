@@ -1,0 +1,19 @@
+{
+  "appId": "io.github.nagisa793.duelarena",
+  "appName": "DUEL ARENA",
+  "webDir": "www",
+  "backgroundColor": "#070f14",
+  "loggingBehavior": "debug",
+  "zoomEnabled": false,
+  "android": {
+    "backgroundColor": "#070f14",
+    "minWebViewVersion": 110,
+    "webContentsDebuggingEnabled": false
+  },
+  "ios": {
+    "backgroundColor": "#070f14",
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "allowsLinkPreview": false
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "duel-arena-app",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "DUEL ARENA smartphone landscape app; upstream game is preserved byte-for-byte.",
+  "scripts": {
+    "build": "node scripts/build-web.mjs",
+    "sync:web": "node scripts/sync-web.mjs",
+    "native:sync": "npm run build && npx cap sync && node scripts/configure-native.mjs",
+    "test": "node --test tests/app.test.mjs && node tests/rules-regression.cjs && node tests/audio-startup.cjs",
+    "check": "npm run build && npm test",
+    "android": "npm run native:sync && npx cap open android",
+    "ios": "npm run native:sync && npx cap open ios"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.5.3",
+    "@capacitor/core": "8.5.3",
+    "@capacitor/ios": "8.5.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "8.5.3",
+    "@playwright/test": "1.64.0",
+    "jsdom": "26.1.0"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

@@ -21,7 +21,7 @@ iOS用Actionsでは署名不要のシミュレータービルドを検証しま�
 APP専用の変更は `app/` とネイティブプロジェクトに保存しています。
 `upstream.json` に取り込んだコミットと全ファイルのSHA-256を記録します。
 
-**Sync WEB into APP** が1時間ごとに元リポジトリを読み取り、変更があればAPP側だけへ反映します。
+**Build mobile apps** 内の同期処理が1時間ごとに元リポジトリを読み取り、変更があればAPP側だけへ反映します。
 テストが通った内容をAPPの `main` にコミットし、その同じコミットからAndroid APKとiOSシミュレーター版をビルドします。
 WEB版のリポジトリ・公開サイトへ書き込む処理はありません。
 Actionsのスケジュールには実行遅延があり、長期間活動のない公開リポジトリではGitHubがスケジュールを停止する場合があります。
@@ -49,7 +49,7 @@ npm run native:sync
 ```
 
 Android: `npm run android` でAndroid Studioを開きます。Java 21とAndroid SDKが必要です。
-iOS: Macで `npm run ios` を実行してXcodeを開きます。Xcode 26以上が必要です。Swift Package Managerを使用します。
+iOS: Macで `npm run ios` を実行してXcodeを開きます。Xcode 26以上が必要です。iOS 17以上に対応しSwift Package Managerを使用します。
 Androidは左右どちらの横向きにも対応します。iPhone・iPadも横向きで表示します。
 ゲーム画面を拡大縮小の変換で押し込まず、実際の画面寸法で盤面とタッチ位置を合わせています。
 

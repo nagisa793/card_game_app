@@ -1,0 +1,135 @@
+name: Build mobile apps
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+  schedule:
+    - cron: '23 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: duel-arena-app
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      ref: ${{ steps.commit.outputs.ref }}
+      build: ${{ steps.need.outputs.build }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Check for WEB changes
+        id: need
+        shell: bash
+        run: |
+          current=$(node -p 'JSON.parse(require("fs").readFileSync("upstream.json","utf8")).commit')
+          latest=$(git ls-remote https://github.com/nagisa793/card_game.git refs/heads/main | cut -f1)
+          if [ -z "$latest" ]; then exit 1; fi
+          if [ "$current" != "$latest" ] || [ ! -f web/index.html ] || [ "${{ github.event_name }}" != "schedule" ]; then
+            echo 'build=true' >> "$GITHUB_OUTPUT"
+          else
+            echo 'build=false' >> "$GITHUB_OUTPUT"
+          fi
+      - run: npm ci
+        if: steps.need.outputs.build == 'true'
+      - name: Read the original WEB game into APP only
+        run: npm run sync:web
+        if: steps.need.outputs.build == 'true'
+      - name: Build and verify original rules and APP behavior
+        run: npm run check
+        if: steps.need.outputs.build == 'true'
+      - name: Install Chromium for mobile layout tests
+        run: npx playwright install --with-deps chromium
+        if: steps.need.outputs.build == 'true'
+      - name: Test landscape viewports and direct touch selection
+        run: npx playwright test
+        if: steps.need.outputs.build == 'true'
+      - name: Keep mobile test evidence on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: mobile-test-report
+          path: |
+            playwright-report/
+            test-results/
+          if-no-files-found: ignore
+      - name: Commit validated WEB copy to the APP repository
+        id: commit
+        if: steps.need.outputs.build == 'true'
+        shell: bash
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add web upstream.json tests/rules-regression.cjs tests/audio-startup.cjs
+          if ! git diff --cached --quiet; then
+            version=$(node -p 'JSON.parse(require("fs").readFileSync("upstream.json","utf8")).webVersion')
+            git commit -m "Sync WEB v${version} into APP without changing game rules"
+            git push origin HEAD:main
+          fi
+          echo "ref=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+      - name: Upload the exact tested APP web build
+        if: steps.need.outputs.build == 'true'
+        uses: actions/upload-artifact@v4
+        with:
+          name: duel-arena-app-web
+          path: www/
+          retention-days: 30
+
+  android:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+      - uses: android-actions/setup-android@v3
+      - run: npm ci
+      - run: npm run native:sync
+      - name: Build Android APK
+        run: bash android/gradlew -p android assembleDebug --no-daemon
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duel-arena-android-debug
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
+
+  ios:
+    needs: prepare
+    if: needs.prepare.outputs.build == 'true'
+    runs-on: macos-26
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.prepare.outputs.ref }}
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - run: npm run native:sync
+      - name: Build iOS Simulator app without Apple signing credentials
+        run: xcodebuild -project ios/App/App.xcodeproj -scheme App -configuration Debug -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -derivedDataPath ios/App/DerivedData CODE_SIGNING_ALLOWED=NO build
+      - uses: actions/upload-artifact@v4
+        with:
+          name: duel-arena-ios-simulator
+          path: ios/App/DerivedData/Build/Products/Debug-iphonesimulator/App.app
+          retention-days: 30
