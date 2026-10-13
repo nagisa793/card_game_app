@@ -96,6 +96,9 @@ test('both corner menus preserve the original controls during COM spectator play
   await page.locator('#autoStartBtn').tap();
   await expect(page.locator('#appTopMenu')).toBeHidden();
   await expect(page.locator('#gameStartOverlay')).toBeHidden({ timeout: 60000 });
+  // Let a real COM move enter the history before testing undo/redo. Undoing
+  // the start itself correctly returns to the original welcome screen.
+  await expect(page.locator('#oppBattle .slot.char, #ownBattle .slot.char').first()).toBeAttached({ timeout: 60000 });
   await page.locator('#appTopMenuToggle').tap();
   await page.locator('#autoPauseBtn').tap();
   await expect(page.locator('#appTopMenu')).toBeHidden();
