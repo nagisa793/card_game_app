@@ -76,6 +76,14 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
   await page.screenshot({ path: `test-results/landscape-summon-${renderer}.png` });
   const ownHand = await page.locator('#ownHand').boundingBox();
   expect(ownHand.y + ownHand.height).toBeLessThanOrEqual(390);
+  await page.locator('#ownHand .card.type-trap').first().tap();
+  const tacticSlot = page.locator('.boardLegalSlot').first();
+  await expect(tacticSlot).toBeVisible();
+  const tacticBox = await tacticSlot.boundingBox();
+  expect(tacticBox.y + tacticBox.height).toBeLessThan(ownHand.y);
+  // The lower edge remains tappable next to the hand, not only its center.
+  await tacticSlot.tap({ position: { x: tacticBox.width / 2, y: tacticBox.height - 3 } });
+  await expect(page.locator('#ownTactic .slot.trap')).toHaveCount(1);
   const confirm = page.locator('#deckActions button').first();
   if (await confirm.count()) {
     const box = await confirm.boundingBox();

@@ -65,6 +65,9 @@ body.duelApp.appCompactUI #phaseBanner {
 }
 @media (orientation: landscape) and (max-height: 650px) {
   body.duelApp.appCompactUI #oppHand { top: 4px; }
+  /* Keep the cards in the same place without an invisible hand padding area
+     intercepting taps on the enlarged lower tactic row. */
+  body.duelApp.appCompactUI #ownHand { height: 60px !important; padding: 2px 4px; }
 }
 body.duelApp .battleLayout,
 body.duelApp.historyCollapsed .battleLayout {
