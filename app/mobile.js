@@ -54,6 +54,19 @@ function prepareAppLayout() {
 
   const arena = window.DuelArena;
   if (arena?.camera && arena !== fittedArena) {
+    // The software fallback sizes its photograph from the frustum numbers.
+    // Give that drawing pass the effective zoomed frustum without changing
+    // the camera's projection matrix used by cards and touch targets.
+    if (arena.ctx && arena.renderBackground) {
+      const originalBackground = arena.renderBackground;
+      arena.renderBackground = function (...args) {
+        const camera = this.camera;
+        const edges = [camera.left, camera.right, camera.top, camera.bottom];
+        [camera.left, camera.right, camera.top, camera.bottom] = edges.map(edge => edge / camera.zoom);
+        try { return originalBackground.apply(this, args); }
+        finally { [camera.left, camera.right, camera.top, camera.bottom] = edges; }
+      };
+    }
     const originalResize = arena.resize;
     arena.resize = function (...args) {
       const rect = this.canvas.parentElement.getBoundingClientRect();

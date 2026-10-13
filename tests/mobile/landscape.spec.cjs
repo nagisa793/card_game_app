@@ -44,8 +44,15 @@ for (const size of [{ width: 844, height: 390 }, { width: 740, height: 360 }, { 
   });
 }
 
-test('a finger selects a hand card and summons it into the actual highlighted field slot', async ({ page }) => {
+for (const renderer of ['WebGL', 'software']) {
+test(`a finger selects and summons into the actual enlarged ${renderer} field slot`, async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
+  if (renderer === 'software') await page.addInitScript(() => {
+    const getContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function (type, ...args) {
+      return type === 'webgl2' ? null : getContext.call(this, type, ...args);
+    };
+  });
   await page.addInitScript(() => {
     // Deterministic deck and first-player selection only in the test browser.
     Math.random = () => 0.1;
@@ -66,7 +73,7 @@ test('a finger selects a hand card and summons it into the actual highlighted fi
   expect(slotBox.x + slotBox.width).toBeLessThan(844);
   await slot.tap();
   await expect(page.locator('#ownBattle .slot.char')).toHaveCount(1);
-  await page.screenshot({ path: 'test-results/landscape-summon.png' });
+  await page.screenshot({ path: `test-results/landscape-summon-${renderer}.png` });
   const ownHand = await page.locator('#ownHand').boundingBox();
   expect(ownHand.y + ownHand.height).toBeLessThanOrEqual(390);
   const confirm = page.locator('#deckActions button').first();
@@ -76,6 +83,7 @@ test('a finger selects a hand card and summons it into the actual highlighted fi
     expect(box.height).toBeGreaterThanOrEqual(44);
   }
 });
+}
 
 test('both corner menus preserve the original controls during COM spectator playback', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
