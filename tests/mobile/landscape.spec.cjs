@@ -61,6 +61,25 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
   await page.waitForFunction(() => !!window.DuelArena);
   await page.locator('#welcome [data-start-mode="com"]').tap();
   await expect(page.locator('#ownHand .card.type-character').first()).toBeVisible({ timeout: 60000 });
+  if (renderer === 'WebGL') console.log('APP backdrop diagnostic', await page.evaluate(async () => {
+    const a = window.DuelArena, T = await import('./vendor/three.module.js');
+    await a.backgroundReadyPromise;
+    const pixels = [];
+    const photos = a.fixed.children.filter(mesh => mesh.material.map);
+    const photo = photos.find(mesh => mesh.material.map.image.src.includes('photoreal'));
+    const image = photo.material.map.image;
+    const sample = document.createElement('canvas');
+    sample.width = image.width; sample.height = image.height;
+    const ctx = sample.getContext('2d'); ctx.drawImage(image, 0, 0);
+    for (const [u, v] of [[.3, .3], [.4, .4], [.5, .5], [.6, .6], [.7, .7]]) {
+      const point = new T.Vector3((u - .5) * 24.32, (v - .5) * 15.2, -60).applyQuaternion(a.camera.quaternion).add(a.camera.position).project(a.camera);
+      const x = Math.floor((point.x + 1) * a.staticBackground.width / 2), y = Math.floor((point.y + 1) * a.staticBackground.height / 2);
+      const rgba = new Uint8Array(4);
+      a.renderer.readRenderTargetPixels(a.staticBackground, x, y, 1, 1, rgba);
+      pixels.push({ uv: [u, v], xy: [x, y], actual: [...rgba], original: [...ctx.getImageData(Math.floor(u * image.width), Math.floor((1 - v) * image.height), 1, 1).data] });
+    }
+    return { pixels, camera: a.camera.toJSON(), photos: photos.map(mesh => ({ url: mesh.material.map.image.src, complete: mesh.material.map.image.complete, visible: mesh.visible, opacity: mesh.material.opacity, depthTest: mesh.material.depthTest, cull: mesh.frustumCulled, positions: [...mesh.geometry.attributes.position.array] })), programs: a.renderer.info.programs.map(p => p.diagnostics || { name: p.name }), glError: a.renderer.getContext().getError() };
+  }));
   const card = page.locator('#ownHand .card.type-character').first();
   const name = await card.getAttribute('data-inspect-title');
   await card.tap();
