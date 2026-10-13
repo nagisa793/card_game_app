@@ -81,9 +81,13 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
   await expect(tacticSlot).toBeVisible();
   const tacticBox = await tacticSlot.boundingBox();
   expect(tacticBox.y + tacticBox.height).toBeLessThan(ownHand.y);
-  // The lower edge remains tappable next to the hand, not only its center.
-  await tacticSlot.tap({ position: { x: tacticBox.width / 2, y: tacticBox.height - 3 } });
+  // Use a physical touch inside the polygon near its lower edge, rather than
+  // Playwright's relative padding-box coordinates for an SVG element.
+  const point = { x: tacticBox.x + tacticBox.width / 2, y: tacticBox.y + tacticBox.height * .8 };
+  expect(await page.evaluate(point => !!document.elementFromPoint(point.x, point.y)?.closest('.boardLegalSlot'), point)).toBe(true);
+  await page.touchscreen.tap(point.x, point.y);
   await expect(page.locator('#ownTactic .slot.trap')).toHaveCount(1);
+  await page.screenshot({ path: `test-results/landscape-tactic-${renderer}.png` });
   const confirm = page.locator('#deckActions button').first();
   if (await confirm.count()) {
     const box = await confirm.boundingBox();

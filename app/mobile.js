@@ -80,10 +80,23 @@ function prepareAppLayout() {
     };
     fittedArena = arena;
     arena.resize();
+    // The original renderer can cache its first backdrop while textures are
+    // still arriving. Re-capture with the fitted camera after that pass is
+    // ready, so the first visible picture matches the enlarged touch targets.
+    Promise.resolve(arena.backgroundReadyPromise).then(() => {
+      requestAnimationFrame(() => { if (fittedArena === arena) arena.resize(); });
+    });
   }
   if (bar && dock) body.classList.add('appCompactUI');
   return !!(bar && dock && fittedArena);
 }
+
+window.addEventListener('duel:game-start', () => {
+  const arena = fittedArena;
+  if (arena) Promise.resolve(arena.backgroundReadyPromise).then(() => {
+    requestAnimationFrame(() => { if (fittedArena === arena) arena.resize(); });
+  });
+});
 
 document.addEventListener('click', event => {
   for (const menu of menus) {
