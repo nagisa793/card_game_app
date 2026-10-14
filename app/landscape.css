@@ -197,3 +197,6 @@ body.appPortrait #appOrientation {
   body.duelApp .settingsHeader button,
   body.duelApp .cardCatalogHeader button { min-height: 44px; }
 }
+
+/* Keep the APP board clear of the top-left phase caption. */
+body.duelApp #phaseBanner { display: none !important; }

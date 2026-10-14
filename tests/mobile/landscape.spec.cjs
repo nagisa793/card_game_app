@@ -41,12 +41,7 @@ for (const size of [{ width: 844, height: 390 }, { width: 740, height: 360 }, { 
     await page.locator('#cardCatalogClose').click();
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true);
     expect(errors).toEqual([]);
-    const phase = await page.locator('#phaseBanner').boundingBox();
-    const fieldLeft = await page.evaluate(() => {
-      const stage = document.querySelector('#battleStage');
-      return stage.getBoundingClientRect().left + parseFloat(stage.style.getPropertyValue('--field-left-edge'));
-    });
-    expect(phase.x + phase.width).toBeLessThan(fieldLeft);
+    await expect(page.locator('#phaseBanner')).toBeHidden();
     expect(await page.evaluate(() => window.DuelArena.camera.zoom)).toBeGreaterThan(1);
     await page.screenshot({ path: `test-results/${test.info().project.name}-landscape-${size.width}.png` });
   });
@@ -177,11 +172,6 @@ test('both corner menus preserve the original controls during COM spectator play
   await page.locator('#appBottomMenuToggle').tap();
   await page.locator('#chainToggleBtn').tap();
   await expect(page.locator('#chainHistoryShell')).toBeHidden();
-  const phase = await page.locator('#phaseBanner').boundingBox();
-  const fieldLeft = await page.evaluate(() => {
-    const stage = document.querySelector('#battleStage');
-    return stage.getBoundingClientRect().left + parseFloat(stage.style.getPropertyValue('--field-left-edge'));
-  });
-  expect(phase.x + phase.width).toBeLessThan(fieldLeft);
+  await expect(page.locator('#phaseBanner')).toBeHidden();
   await page.screenshot({ path: `test-results/${test.info().project.name}-landscape-spectator-compact.png` });
 });
