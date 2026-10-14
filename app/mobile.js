@@ -14,9 +14,18 @@ function compactMenu(container, panel, id, label) {
   toggle.type = 'button';
   toggle.className = 'appMenuToggle';
   toggle.setAttribute('aria-controls', id);
+  // Draw the marker as a vector; its appearance never depends on emoji fonts.
+  const arrow = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  arrow.classList.add('appMenuArrow');
+  arrow.setAttribute('viewBox', '0 0 32 32');
+  arrow.setAttribute('aria-hidden', 'true');
+  arrow.setAttribute('focusable', 'false');
+  const triangle = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  triangle.setAttribute('d', 'M21 7 L9 16 L21 25 Z');
+  arrow.append(triangle);
+  toggle.append(arrow);
   const setOpen = open => {
     panel.hidden = !open;
-    toggle.textContent = open ? '▶️' : '◀️';
     toggle.setAttribute('aria-expanded', String(open));
     toggle.setAttribute('aria-label', label + (open ? 'を閉じる' : 'を開く'));
   };

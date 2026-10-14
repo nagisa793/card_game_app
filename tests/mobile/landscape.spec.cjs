@@ -11,8 +11,16 @@ for (const size of [{ width: 844, height: 390 }, { width: 740, height: 360 }, { 
     await expect(page.locator('#welcome')).toBeVisible();
     await expect(page.locator('#appTopMenu')).toBeHidden();
     await expect(page.locator('#appBottomMenu')).toBeHidden();
-    await expect(page.locator('#appTopMenuToggle')).toHaveText('◀️');
-    await expect(page.locator('#appBottomMenuToggle')).toHaveText('◀️');
+    for (const id of ['appTopMenuToggle', 'appBottomMenuToggle']) {
+      const toggle = page.locator(`#${id}`);
+      await expect(toggle).toHaveText('');
+      await expect(toggle.locator('svg[aria-hidden="true"] path')).toHaveCount(1);
+      await expect(toggle).toHaveAttribute('aria-expanded', 'false');
+      const circle = await toggle.boundingBox();
+      expect(circle.width).toBe(circle.height);
+      expect(circle.width).toBeGreaterThanOrEqual(44);
+      expect(await toggle.evaluate(button => getComputedStyle(button).borderRadius)).toBe('50%');
+    }
     const rect = await page.locator('#battleStage').boundingBox();
     expect(rect.width).toBeLessThanOrEqual(size.width);
     expect(rect.height).toBeLessThanOrEqual(size.height);
