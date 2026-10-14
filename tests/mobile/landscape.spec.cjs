@@ -126,12 +126,16 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
   await page.touchscreen.tap(point.x, point.y);
   await expect(page.locator('#ownTactic .slot.trap')).toHaveCount(1);
   await page.screenshot({ path: `test-results/${test.info().project.name}-landscape-tactic-${renderer}.png` });
-  const confirm = page.locator('#deckActions button').first();
-  if (await confirm.count()) {
-    const box = await confirm.boundingBox();
-    expect(box.width).toBeGreaterThanOrEqual(44);
-    expect(box.height).toBeGreaterThanOrEqual(44);
-  }
+  // Placing a card removes its cancellation orb. Select another card to
+  // measure and tap a stable, currently available decision control.
+  await page.locator('#ownHand .card.type-character').first().tap();
+  const cancel = page.locator('#deckActions .deckCancel');
+  await expect(cancel).toBeVisible();
+  const box = await cancel.boundingBox();
+  expect(box.width).toBeGreaterThanOrEqual(44);
+  expect(box.height).toBeGreaterThanOrEqual(44);
+  await cancel.tap();
+  await expect(page.locator('#boardCardPreview')).toBeHidden();
 });
 }
 
