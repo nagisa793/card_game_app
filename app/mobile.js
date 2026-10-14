@@ -4,6 +4,16 @@ const body = document.body;
 const stage = document.getElementById('battleStage');
 const menus = [];
 let fittedArena;
+// CSS dynamic viewport units describe the complete display area. In Safari's
+// installed mode visualViewport can already exclude the safe-area insets.
+const viewportProbe = document.createElement('div');
+viewportProbe.id = 'appViewportProbe';
+viewportProbe.setAttribute('aria-hidden', 'true');
+body.append(viewportProbe);
+let lastViewport;
+let lastSafeArea;
+let resizeQueued = false;
+let settlingTimers = [];
 
 function compactMenu(container, panel, id, label) {
   panel.id = id;
@@ -63,17 +73,56 @@ function prepareAppLayout() {
 
   const arena = window.DuelArena;
   if (arena?.camera && arena !== fittedArena) {
-    // The software fallback sizes its photograph from the frustum numbers.
-    // Give that drawing pass the effective zoomed frustum without changing
-    // the camera's projection matrix used by cards and touch targets.
     if (arena.ctx && arena.renderBackground) {
-      const originalBackground = arena.renderBackground;
-      arena.renderBackground = function (...args) {
-        const camera = this.camera;
-        const edges = [camera.left, camera.right, camera.top, camera.bottom];
-        [camera.left, camera.right, camera.top, camera.bottom] = edges.map(edge => edge / camera.zoom);
-        try { return originalBackground.apply(this, args); }
-        finally { [camera.left, camera.right, camera.top, camera.bottom] = edges; }
+      // Fill the outer scenery at every aspect ratio. The central photograph
+      // retains its calibrated world size, exactly matching cards and taps.
+      arena.renderBackground = function () {
+        const layer = document.createElement('canvas');
+        layer.width = this.canvas.width; layer.height = this.canvas.height;
+        const g = layer.getContext('2d');
+        g.scale(this.scale, this.scale);
+        g.fillStyle = '#182a2b'; g.fillRect(0, 0, this.width, this.height);
+        const worldWidth = (this.camera.right - this.camera.left) / this.camera.zoom;
+        const worldHeight = (this.camera.top - this.camera.bottom) / this.camera.zoom;
+        if (this.panoramaImage.complete && this.panoramaImage.naturalWidth) {
+          let w = this.width * 38.4 / worldWidth, h = this.height * 16 / worldHeight;
+          const cover = Math.max(1, this.width / w, this.height / h);
+          w *= cover; h *= cover;
+          g.drawImage(this.panoramaImage, (this.width - w) / 2, (this.height - h) / 2, w, h);
+        }
+        if (this.arenaImage.complete && this.arenaImage.naturalWidth) {
+          const w = this.width * 24.32 / worldWidth, h = this.height * 15.2 / worldHeight;
+          const center = document.createElement('canvas');
+          center.width = this.arenaImage.naturalWidth; center.height = this.arenaImage.naturalHeight;
+          const cg = center.getContext('2d'); cg.drawImage(this.arenaImage, 0, 0);
+          cg.globalCompositeOperation = 'destination-in';
+          const fade = cg.createLinearGradient(0, 0, center.width, 0);
+          fade.addColorStop(0, '#0000'); fade.addColorStop(.045, '#000');
+          fade.addColorStop(.955, '#000'); fade.addColorStop(1, '#0000');
+          cg.fillStyle = fade; cg.fillRect(0, 0, center.width, center.height);
+          g.drawImage(center, (this.width - w) / 2, (this.height - h) / 2, w, h);
+        }
+        this.background = layer;
+      };
+    } else if (arena.captureStaticBackground) {
+      const originalCapture = arena.captureStaticBackground;
+      let scenery;
+      arena.captureStaticBackground = function (...args) {
+        const mesh = this.fixed.children.find(node => node.material.map?.image?.src?.includes('arena-panorama-'));
+        if (mesh) {
+          const geometry = mesh.geometry, positions = geometry.attributes.position;
+          if (scenery?.geometry !== geometry) {
+            geometry.computeBoundingBox();
+            scenery = { geometry, base: [...positions.array], center: geometry.boundingBox.getCenter(mesh.position.clone()).toArray() };
+          }
+          const cover = Math.max(1, (this.camera.right - this.camera.left) / this.camera.zoom / 38.4, (this.camera.top - this.camera.bottom) / this.camera.zoom / 16);
+          for (let i = 0; i < positions.array.length; i++) {
+            positions.array[i] = scenery.center[i % 3] + (scenery.base[i] - scenery.center[i % 3]) * cover;
+          }
+          positions.needsUpdate = true;
+          geometry.computeBoundingSphere(); mesh.frustumCulled = false;
+        }
+        return originalCapture.apply(this, args);
       };
     }
     const originalResize = arena.resize;
@@ -85,7 +134,24 @@ function prepareAppLayout() {
       const desired = Math.min(1.24, Math.max(1.06, 1.06 + (rect.height - 320) * .0016));
       const sideRoom = (rect.width - 176) / (rect.height * 14.9 / 15.2);
       this.camera.zoom = landscape ? Math.max(1, Math.min(desired, sideRoom)) : 1;
-      return originalResize.apply(this, args);
+      const result = originalResize.apply(this, args);
+      // The artwork bleeds behind the home indicator, while the hand stays
+      // above it. Keep the lowest real tactic footprint clear of that hand.
+      const hand = document.getElementById('ownHand')?.getBoundingClientRect();
+      const lowerSlot = this.slots?.find(slot => slot.userData.id === 'ownTactic');
+      if (landscape && hand?.height && lowerSlot) {
+        this.camera.updateMatrixWorld();
+        const edge = lowerSlot.position.clone();
+        edge.z += lowerSlot.geometry.parameters.height / 2;
+        const projected = edge.project(this.camera);
+        const lowerY = (1 - projected.y) * rect.height / 2;
+        const available = hand.top - rect.top - 8 - rect.height / 2;
+        if (available > 0 && lowerY > hand.top - rect.top - 8) {
+          this.camera.zoom *= available / (lowerY - rect.height / 2);
+          originalResize.apply(this, args);
+        }
+      }
+      return result;
     };
     fittedArena = arena;
     arena.resize();
@@ -120,23 +186,61 @@ gate.innerHTML = '<strong>DUEL ARENA</strong><p>スマホを横向きにして�
 body.append(gate);
 
 export function viewportSize(viewport = window.visualViewport) {
-  return { width: Math.round(viewport?.width || window.innerWidth), height: Math.round(viewport?.height || window.innerHeight) };
+  const measured = viewportProbe.getBoundingClientRect();
+  if (measured.width > 0 && measured.height > 0) {
+    return { width: Math.round(measured.width), height: Math.round(measured.height) };
+  }
+  const layout = { width: window.innerWidth, height: window.innerHeight };
+  // Fallback for browsers without viewport-unit layout: reject transient
+  // portrait dimensions and pinch-zoom measurements during landscape entry.
+  const consistent = viewport?.width > 0 && viewport?.height > 0
+    && Math.abs((viewport.scale || 1) - 1) < .01
+    && Math.abs(viewport.width - layout.width) < 2
+    && (viewport.width >= viewport.height) === (layout.width >= layout.height);
+  const current = consistent ? viewport : layout;
+  return { width: Math.round(current.width || lastViewport?.width || 1), height: Math.round(current.height || lastViewport?.height || 1) };
 }
 export function fitAppViewport() {
+  if (document.hidden && lastViewport) return;
   const { width, height } = viewportSize();
-  body.style.setProperty('--app-height', `${height}px`);
-  body.style.setProperty('--app-width', `${width}px`);
+  const probeStyle = getComputedStyle(viewportProbe);
+  const safeArea = [probeStyle.paddingTop, probeStyle.paddingRight, probeStyle.paddingBottom, probeStyle.paddingLeft].join(' ');
+  const changed = !lastViewport || width !== lastViewport.width || height !== lastViewport.height || safeArea !== lastSafeArea;
+  lastSafeArea = safeArea;
+  lastViewport = { width, height };
+  if (changed) {
+    body.style.setProperty('--app-height', `${height}px`);
+    body.style.setProperty('--app-width', `${width}px`);
+  }
   body.classList.toggle('appPortrait', height > width);
   gate.hidden = width >= height;
   prepareAppLayout();
-  // Let ResizeObserver recalculate real pixel coordinates. No CSS transforms
-  // or synthetic clicks are applied to the field or touch coordinates.
-  requestAnimationFrame(() => window.DuelArena?.resize?.());
+  if (changed && !resizeQueued) {
+    resizeQueued = true;
+    requestAnimationFrame(() => {
+      resizeQueued = false;
+      window.DuelArena?.resize?.();
+    });
+  }
 }
-fitAppViewport();
-window.addEventListener('resize', fitAppViewport, { passive: true });
-window.visualViewport?.addEventListener('resize', fitAppViewport, { passive: true });
-window.addEventListener('orientationchange', fitAppViewport, { passive: true });
+function synchronizeViewport() {
+  settlingTimers.forEach(clearTimeout);
+  settlingTimers = [];
+  fitAppViewport();
+  if (document.hidden) return;
+  // iOS can dispatch orientationchange before the new viewport has settled.
+  // These bounded rechecks also cover restored pages without a resize event.
+  settlingTimers = [100, 300, 700, 1500].map(delay => setTimeout(fitAppViewport, delay));
+}
+synchronizeViewport();
+for (const event of ['resize', 'orientationchange', 'pageshow', 'load', 'focus']) {
+  window.addEventListener(event, synchronizeViewport, { passive: true });
+}
+window.visualViewport?.addEventListener('resize', synchronizeViewport, { passive: true });
+window.visualViewport?.addEventListener('scroll', synchronizeViewport, { passive: true });
+window.screen.orientation?.addEventListener('change', synchronizeViewport, { passive: true });
+document.addEventListener('visibilitychange', synchronizeViewport);
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(synchronizeViewport).observe(viewportProbe);
 
 // DOM labels are regenerated by the original renderer. Re-layout decision
 // orbs through that renderer rather than guessing their screen coordinates.

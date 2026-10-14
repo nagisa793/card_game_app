@@ -51,8 +51,8 @@ jobs:
           python3 tests/local-web.py
           python3 tests/local-launch.py
         if: steps.need.outputs.build == 'true'
-      - name: Install Chromium for mobile layout tests
-        run: npx playwright install --with-deps chromium
+      - name: Install Chromium and WebKit for mobile layout tests
+        run: npx playwright install --with-deps chromium webkit
         if: steps.need.outputs.build == 'true'
       - name: Test landscape viewports and direct touch selection
         run: npx playwright test

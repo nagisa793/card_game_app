@@ -10,6 +10,12 @@ body.duelApp {
   user-select: none;
   -webkit-tap-highlight-color: transparent;
 }
+#appViewportProbe {
+  position: fixed; top: 0; left: 0; width: 100vw;
+  height: 100%; height: 100dvh; box-sizing: border-box;
+  padding: var(--app-top) var(--app-right) var(--app-bottom) var(--app-left);
+  visibility: hidden; pointer-events: none; contain: strict;
+}
 
 /* Only the two corner arrows remain visible over the APP arena. The panels
    contain the original controls, including undo/redo and spectator pause. */
@@ -53,7 +59,7 @@ body.duelApp #appBottomMenu button {
   white-space: normal; line-height: 1.35;
 }
 body.duelApp.appCompactUI .boardDock {
-  display: block; right: 6px; bottom: 4px; width: 44px; height: 44px;
+  display: block; right: calc(var(--app-right) + 6px); bottom: calc(var(--app-bottom) + 4px); width: 44px; height: 44px;
 }
 body.duelApp #appBottomMenu {
   position: absolute; right: 50px; bottom: 0;
@@ -64,8 +70,8 @@ body.duelApp #appBottomMenu {
 /* The phase text lives in the stage's left margin. Its width follows the real
    projected stone slab edge, so long COM phases wrap without covering it. */
 body.duelApp.appCompactUI .metaBar {
-  position: absolute; top: 6px; left: 6px; right: auto;
-  width: max(0px, calc(var(--field-left-edge, 25%) - 12px));
+  position: absolute; top: calc(var(--app-top) + 6px); left: calc(var(--app-left) + 6px); right: auto;
+  width: max(0px, calc(var(--field-left-edge, 25%) - var(--app-left) - 12px));
   height: auto; min-height: 0; padding: 0; pointer-events: auto;
 }
 body.duelApp.appCompactUI #phaseBanner {
@@ -74,16 +80,16 @@ body.duelApp.appCompactUI #phaseBanner {
   max-height: min(150px, 35vh); overflow-y: auto;
 }
 @media (orientation: landscape) and (max-height: 650px) {
-  body.duelApp.appCompactUI #oppHand { top: 4px; }
+  body.duelApp.appCompactUI #oppHand { top: calc(var(--app-top) + 4px); }
   /* Keep the cards in the same place without an invisible hand padding area
      intercepting taps on the enlarged lower tactic row. */
-  body.duelApp.appCompactUI #ownHand { height: 60px !important; padding: 2px 4px; }
+  body.duelApp.appCompactUI #ownHand { height: 60px !important; padding: 2px 4px; bottom: calc(var(--app-bottom) + 2px); }
 }
 body.duelApp .battleLayout,
 body.duelApp.historyCollapsed .battleLayout {
-  inset: var(--app-top) var(--app-right) var(--app-bottom) var(--app-left);
-  width: auto;
-  height: calc(var(--app-height, 100dvh) - var(--app-top) - var(--app-bottom));
+  inset: 0;
+  width: var(--app-width, 100vw);
+  height: var(--app-height, 100dvh);
 }
 body.duelApp .top-bar {
   left: var(--app-left);

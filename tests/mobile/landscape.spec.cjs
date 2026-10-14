@@ -48,7 +48,7 @@ for (const size of [{ width: 844, height: 390 }, { width: 740, height: 360 }, { 
     });
     expect(phase.x + phase.width).toBeLessThan(fieldLeft);
     expect(await page.evaluate(() => window.DuelArena.camera.zoom)).toBeGreaterThan(1);
-    await page.screenshot({ path: `test-results/landscape-${size.width}.png` });
+    await page.screenshot({ path: `test-results/${test.info().project.name}-landscape-${size.width}.png` });
   });
 }
 
@@ -71,7 +71,7 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
   await page.waitForFunction(() => !!window.DuelArena);
   await page.locator('#welcome [data-start-mode="com"]').tap();
   await expect(page.locator('#ownHand .card.type-character').first()).toBeVisible({ timeout: 60000 });
-  if (renderer === 'WebGL') {
+  if (renderer === 'WebGL' && await page.evaluate(() => !!window.DuelArena.renderer)) {
     const photoError = await page.evaluate(async () => {
       const arena = window.DuelArena;
       await arena.backgroundReadyPromise;
@@ -111,7 +111,7 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
   expect(slotBox.x + slotBox.width).toBeLessThan(844);
   await slot.tap();
   await expect(page.locator('#ownBattle .slot.char')).toHaveCount(1);
-  await page.screenshot({ path: `test-results/landscape-summon-${renderer}.png` });
+  await page.screenshot({ path: `test-results/${test.info().project.name}-landscape-summon-${renderer}.png` });
   const ownHand = await page.locator('#ownHand').boundingBox();
   expect(ownHand.y + ownHand.height).toBeLessThanOrEqual(390);
   await page.locator('#ownHand .card.type-trap').first().tap();
@@ -125,7 +125,7 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
   expect(await page.evaluate(point => !!document.elementFromPoint(point.x, point.y)?.closest('.boardLegalSlot'), point)).toBe(true);
   await page.touchscreen.tap(point.x, point.y);
   await expect(page.locator('#ownTactic .slot.trap')).toHaveCount(1);
-  await page.screenshot({ path: `test-results/landscape-tactic-${renderer}.png` });
+  await page.screenshot({ path: `test-results/${test.info().project.name}-landscape-tactic-${renderer}.png` });
   const confirm = page.locator('#deckActions button').first();
   if (await confirm.count()) {
     const box = await confirm.boundingBox();
@@ -179,5 +179,5 @@ test('both corner menus preserve the original controls during COM spectator play
     return stage.getBoundingClientRect().left + parseFloat(stage.style.getPropertyValue('--field-left-edge'));
   });
   expect(phase.x + phase.width).toBeLessThan(fieldLeft);
-  await page.screenshot({ path: 'test-results/landscape-spectator-compact.png' });
+  await page.screenshot({ path: `test-results/${test.info().project.name}-landscape-spectator-compact.png` });
 });

@@ -22,10 +22,11 @@ test('the entire game and all original assets are preserved in the APP build', a
 });
 
 test('landscape viewport follows real pixels and cancelled touches do not activate cards', async () => {
-  const dom = new JSDOM('<body class="duelApp"><div id="battleStage"></div></body>', { url: 'https://test.invalid', runScripts: 'outside-only' });
+  const dom = new JSDOM('<body class="duelApp"><div id="battleStage"></div></body>', { url: 'https://test.invalid', runScripts: 'outside-only', pretendToBeVisual: true });
   const w = dom.window;
   const viewport = new w.EventTarget();
   viewport.width = 844; viewport.height = 390;
+  w.innerWidth = 844; w.innerHeight = 390;
   Object.defineProperty(w, 'visualViewport', { value: viewport });
   let resized = 0, blurred = 0, clicked = 0;
   w.DuelArena = { resize: () => resized++ };
@@ -38,10 +39,12 @@ test('landscape viewport follows real pixels and cancelled touches do not activa
   assert.equal(gate.hidden, true);
   assert.equal(w.document.body.style.getPropertyValue('--app-height'), '390px');
   viewport.width = 390; viewport.height = 844;
+  w.innerWidth = 390; w.innerHeight = 844;
   viewport.dispatchEvent(new w.Event('resize'));
   assert.equal(gate.hidden, false);
   assert(w.document.body.classList.contains('appPortrait'));
   viewport.width = 932; viewport.height = 430;
+  w.innerWidth = 932; w.innerHeight = 430;
   w.dispatchEvent(new w.Event('orientationchange'));
   assert.equal(gate.hidden, true);
   assert.equal(w.document.body.style.getPropertyValue('--app-width'), '932px');
@@ -49,6 +52,37 @@ test('landscape viewport follows real pixels and cancelled touches do not activa
   assert.equal(blurred, 1);
   assert.equal(clicked, 0);
   assert.equal(resized, 3);
+  dom.window.close();
+});
+
+test('landscape entry ignores stale/zoomed visual viewports and follows the complete CSS viewport on restore', async () => {
+  const dom = new JSDOM('<body class="duelApp"><div id="battleStage"></div></body>', { url: 'https://test.invalid', runScripts: 'outside-only', pretendToBeVisual: true });
+  const w = dom.window, viewport = new w.EventTarget();
+  w.innerWidth = 844; w.innerHeight = 390;
+  Object.assign(viewport, { width: 390, height: 844, scale: 1 });
+  Object.defineProperty(w, 'visualViewport', { value: viewport });
+  w.requestAnimationFrame = callback => { callback(); return 1; };
+  w.eval((await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function'));
+  assert.equal(w.document.body.style.getPropertyValue('--app-height'), '390px');
+  assert.equal(w.document.getElementById('appOrientation').hidden, true);
+  const probe = w.document.getElementById('appViewportProbe');
+  let size = { width: 844, height: 390 };
+  probe.getBoundingClientRect = () => size;
+  Object.assign(viewport, { width: 844, height: 369 }); // safe area was already subtracted
+  viewport.dispatchEvent(new w.Event('resize'));
+  assert.equal(w.document.body.style.getPropertyValue('--app-height'), '390px');
+  Object.assign(viewport, { width: 422, height: 195, scale: 2 });
+  viewport.dispatchEvent(new w.Event('resize'));
+  assert.equal(w.document.body.style.getPropertyValue('--app-width'), '844px');
+  size = { width: 844, height: 340 }; // browser chrome changes the CSS viewport
+  w.dispatchEvent(new w.Event('pageshow'));
+  assert.equal(w.document.body.style.getPropertyValue('--app-height'), '340px');
+  size = { width: 390, height: 844 };
+  w.dispatchEvent(new w.Event('orientationchange'));
+  assert.equal(w.document.getElementById('appOrientation').hidden, false);
+  size = { width: 844, height: 390 };
+  w.dispatchEvent(new w.Event('focus'));
+  assert.equal(w.document.getElementById('appOrientation').hidden, true);
   dom.window.close();
 });
 
