@@ -256,14 +256,23 @@ document.addEventListener('pointercancel', () => window.dispatchEvent(new Event(
 // WEB app updates apply before the next game, never during a match.
 if ( 'serviceWorker' in navigator && window.isSecureContext) {
   let reloading = false;
+  let controlled = !!navigator.serviceWorker.controller;
+  let gameStarted = false;
+  document.addEventListener('click', event => {
+    if (event.target.closest?.('[data-start-mode], #comStartBtn, #autoStartBtn')) gameStarted = true;
+  }, true);
+  const updateIsSafe = () => !gameStarted && !window.DuelEngine?.view();
   navigator.serviceWorker.addEventListener('controllerchange', () => {
+    // The first installation claims the page already serving these assets.
+    // Reloading it races with rotation, menus and the first game-start tap.
+    if (!controlled) { controlled = true; return; }
     if (reloading) return;
     reloading = true;
-    if (!window.DuelEngine?.view()) location.reload();
+    if (updateIsSafe()) location.reload();
   });
   navigator.serviceWorker.register('./sw.js').then(registration => {
     const activateAtWelcome = () => {
-      if (!window.DuelEngine?.view()) registration.waiting?.postMessage({ type: 'ACTIVATE_UPDATE' });
+      if (updateIsSafe()) registration.waiting?.postMessage({ type: 'ACTIVATE_UPDATE' });
     };
     activateAtWelcome();
     registration.addEventListener('updatefound', () => {

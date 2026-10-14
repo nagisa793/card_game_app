@@ -138,3 +138,26 @@ test('WEB app manifest uses standalone landscape display', async () => {
   assert.equal(manifest.start_url, './');
   assert.equal(manifest.scope, './');
 });
+
+
+test('first cache installation never reloads and game-start taps block update activation', async () => {
+  const dom = new JSDOM('<body class="duelApp"><div id="battleStage"></div><button data-start-mode="com">Start</button></body>', { url: 'https://test.invalid', runScripts: 'outside-only', pretendToBeVisual: true });
+  const w = dom.window, worker = new w.EventTarget(), registration = new w.EventTarget();
+  let reloads = 0, activations = 0;
+  registration.waiting = { postMessage: () => activations++ };
+  worker.controller = null;
+  worker.register = async () => registration;
+  Object.defineProperty(w.navigator, 'serviceWorker', { value: worker });
+  Object.defineProperty(w, 'isSecureContext', { value: true });
+  w.__reload = () => reloads++;
+  w.DuelEngine = { view: () => null };
+  w.eval((await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function').replace('location.reload()', 'window.__reload()'));
+  worker.dispatchEvent(new w.Event('controllerchange'));
+  assert.equal(reloads, 0);
+  w.document.querySelector('button').click();
+  await Promise.resolve();
+  assert.equal(activations, 0);
+  worker.dispatchEvent(new w.Event('controllerchange'));
+  assert.equal(reloads, 0);
+  dom.window.close();
+});
