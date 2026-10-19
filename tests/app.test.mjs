@@ -21,6 +21,7 @@ test('the entire game and all original assets are preserved in the APP build', a
   assert.match(game, /class="duelApp"/);
   assert.match(game, /app\/landscape\.css/);
   assert.match(game, /app\/mobile\.js/);
+  assert.match(game, /class="brand" href="\.\/index.html" target="_top"/);
   assert.doesNotMatch(entry, /https?:\/\//);
 });
 

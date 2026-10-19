@@ -51,6 +51,7 @@ def build(source, output):
     html = re.sub(r'(<meta name="viewport" content=")[^"]*(">)',
                   r'\1width=device-width, initial-scale=1.0, viewport-fit=cover\2', html)
     html = html.replace('<body>', '<body class="duelApp">')
+    html = html.replace('<a class="brand" href="./index.html">', '<a class="brand" href="./index.html" target="_top">')
     html = html.replace('</head>', '<meta name="theme-color" content="#070f14">\n<link rel="manifest" href="./manifest.webmanifest">\n<link rel="apple-touch-icon" href="./app/icon-192.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<link rel="stylesheet" href="./app/landscape.css">\n</head>')
     html = html.replace('</body>', '<script type="module" src="./app/mobile.js"></script>\n</body>')
     (output / 'game.html').write_text(html, encoding='utf-8')
