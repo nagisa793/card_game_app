@@ -44,6 +44,8 @@ await writeFile(configFile, JSON.stringify({ ...config, commit, webVersion, file
 await mkdir(path.join(root, 'tests'), { recursive: true });
 for (const name of ['rules-regression.cjs', 'audio-startup.cjs']) {
   const test = await readFile(path.join(checkout, 'tests', name), 'utf8');
-  await writeFile(path.join(root, 'tests', name), test.replaceAll('../dist', '../www'));
+  const appTest = test.replaceAll('../dist', '../www');
+  await writeFile(path.join(root, 'tests', name), name === 'rules-regression.cjs'
+    ? appTest.replace("root+'/index.html'", "root+'/game.html'") : appTest);
 }
 console.log(`Synced WEB v${webVersion} (${commit.slice(0, 7)}) into APP only. Game source and assets copied without edits.`);

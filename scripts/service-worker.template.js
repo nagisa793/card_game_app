@@ -26,7 +26,9 @@ self.addEventListener('fetch', event => {
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
-    const key = event.request.mode === 'navigate' ? './index.html' : url.pathname;
+    const gamePath = new URL('./game.html', self.location.href).pathname;
+    const key = event.request.mode === 'navigate'
+      ? (url.pathname === gamePath ? './game.html' : './index.html') : url.pathname;
     const cached = await cache.match(key, { ignoreSearch: true });
     if (cached && event.request.headers.has('range')) {
       const bytes = await cached.arrayBuffer();

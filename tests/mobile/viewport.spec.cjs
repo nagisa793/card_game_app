@@ -37,14 +37,14 @@ for (const size of [
     await page.setViewportSize(size);
     const insets = size.width >= 844 ? { left: 44, right: 44, bottom: 21, top: 0 } : { left: 0, right: 0, bottom: 0, top: 0 };
     await initInsets(page, insets);
-    await page.goto('/'); await ready(page); await fullScreen(page, size);
+    await page.goto('/game.html'); await ready(page); await fullScreen(page, size);
     // Wait for the first viewport/safe-area settling pass before recording.
     await expect.poll(async () => (await geometry(page)).bottom[1] + 44).toBe(size.height - insets.bottom - 4);
     const direct = await geometry(page);
     for (let rotation = 0; rotation < 2; rotation++) {
       await page.setViewportSize({ width: size.height, height: size.width });
       await page.evaluate(() => { window.__setInsets({ top: 47, bottom: 34, left: 0, right: 0 }); dispatchEvent(new Event('orientationchange')); });
-      await expect(page.locator('#appOrientation')).toBeVisible();
+      await expect(page.locator('#appOrientation')).toBeHidden();
       await page.setViewportSize(size);
       await page.evaluate(insets => { window.__setInsets(insets); dispatchEvent(new Event('orientationchange')); }, insets);
       await fullScreen(page, size);
@@ -70,7 +70,7 @@ test('cold landscape entry tolerates stale, zero and zoomed visualViewport value
     Object.defineProperty(window, 'visualViewport', { get: () => mock });
     window.__viewportMock = mock;
   });
-  await page.goto('/'); await ready(page);
+  await page.goto('/game.html'); await ready(page);
   await fullScreen(page, { width: 844, height: 390 });
   const direct = await geometry(page);
   for (const state of [
@@ -89,7 +89,7 @@ test('browser chrome, reverse landscape and restored matches preserve geometry a
   await page.setViewportSize({ width: 844, height: 390 });
   await initInsets(page, { top: 0, left: 44, right: 44, bottom: 21 });
   await page.addInitScript(() => { let calls = 0; Math.random = () => .1 + (++calls % 65536) / 65536000; });
-  await page.goto('/'); await ready(page);
+  await page.goto('/game.html'); await ready(page);
   await page.locator('#welcome [data-start-mode="com"]').tap();
   await expect(page.locator('#gameStartOverlay')).toBeHidden({ timeout: 60000 });
   await page.evaluate(() => { window.__savedArena = window.DuelArena; window.__savedEngine = window.DuelEngine; });
@@ -115,7 +115,7 @@ test('browser chrome, reverse landscape and restored matches preserve geometry a
   await page.evaluate(() => { window.__hidden = true; Object.defineProperty(document, 'hidden', { get: () => window.__hidden, configurable: true }); document.dispatchEvent(new Event('visibilitychange')); });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.evaluate(() => { window.__hidden = false; document.dispatchEvent(new Event('visibilitychange')); });
-  await expect(page.locator('#appOrientation')).toBeVisible();
+  await expect(page.locator('#appOrientation')).toBeHidden();
   await page.setViewportSize({ width: 844, height: 390 });
   await fullScreen(page, { width: 844, height: 390 });
   await expect.poll(() => geometry(page)).toEqual(initial);
@@ -139,7 +139,7 @@ for (const fallback of [false, true]) {
       const original = HTMLCanvasElement.prototype.getContext;
       HTMLCanvasElement.prototype.getContext = function (kind, ...args) { return kind === 'webgl2' ? null : original.call(this, kind, ...args); };
     });
-    await page.goto('/'); await ready(page); await fullScreen(page, { width: 844, height: 270 });
+    await page.goto('/game.html'); await ready(page); await fullScreen(page, { width: 844, height: 270 });
     await page.evaluate(() => window.DuelArena.backgroundReadyPromise);
     await expect.poll(() => page.evaluate(() => {
       const arena = window.DuelArena;

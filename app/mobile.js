@@ -178,13 +178,6 @@ if (!prepareAppLayout() && stage) {
   });
   startupObserver.observe(stage, { childList: true });
 }
-const gate = document.createElement('section');
-gate.id = 'appOrientation';
-gate.setAttribute('role', 'status');
-gate.setAttribute('aria-live', 'polite');
-gate.innerHTML = '<strong>DUEL ARENA</strong><p>スマホを横向きにして遊んでね！</p><span>カードをタップして選択 → 山札のボタンで決定</span>';
-body.append(gate);
-
 export function viewportSize(viewport = window.visualViewport) {
   const measured = viewportProbe.getBoundingClientRect();
   if (measured.width > 0 && measured.height > 0) {
@@ -204,16 +197,20 @@ export function fitAppViewport() {
   if (document.hidden && lastViewport) return;
   const { width, height } = viewportSize();
   const probeStyle = getComputedStyle(viewportProbe);
-  const safeArea = [probeStyle.paddingTop, probeStyle.paddingRight, probeStyle.paddingBottom, probeStyle.paddingLeft].join(' ');
+  const host = window.frameElement?.id === 'gameViewport' ? window.parent.DuelAppViewport : null;
+  const edges = ['top', 'right', 'bottom', 'left'];
+  const insets = edges.map(edge => host
+    ? `${host.safeArea[edge]}px`
+    : probeStyle['padding' + edge[0].toUpperCase() + edge.slice(1)]);
+  const safeArea = insets.join(' ');
   const changed = !lastViewport || width !== lastViewport.width || height !== lastViewport.height || safeArea !== lastSafeArea;
   lastSafeArea = safeArea;
   lastViewport = { width, height };
   if (changed) {
     body.style.setProperty('--app-height', `${height}px`);
     body.style.setProperty('--app-width', `${width}px`);
+    edges.forEach((edge, index) => body.style.setProperty(`--app-${edge}`, insets[index]));
   }
-  body.classList.toggle('appPortrait', height > width);
-  gate.hidden = width >= height;
   prepareAppLayout();
   if (changed && !resizeQueued) {
     resizeQueued = true;
@@ -239,6 +236,10 @@ for (const event of ['resize', 'orientationchange', 'pageshow', 'load', 'focus']
 window.visualViewport?.addEventListener('resize', synchronizeViewport, { passive: true });
 window.visualViewport?.addEventListener('scroll', synchronizeViewport, { passive: true });
 window.screen.orientation?.addEventListener('change', synchronizeViewport, { passive: true });
+window.addEventListener('message', event => {
+  if (event.source === window.parent && event.origin === window.location.origin
+    && event.data?.type === 'duel:viewport') synchronizeViewport();
+});
 document.addEventListener('visibilitychange', synchronizeViewport);
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(synchronizeViewport).observe(viewportProbe);
 

@@ -1,7 +1,7 @@
 // Run with NODE_PATH pointing to an installed jsdom package. No test API ships in dist.
 const {JSDOM}=require('jsdom'),fs=require('fs'),path=require('path'),assert=require('node:assert/strict');
 const root=path.resolve(__dirname,'../www');
-const dom=new JSDOM(fs.readFileSync(root+'/index.html','utf8'),{runScripts:'outside-only',url:'https://test.invalid'}),w=dom.window,d=w.document;
+const dom=new JSDOM(fs.readFileSync(root+'/game.html','utf8'),{runScripts:'outside-only',url:'https://test.invalid'}),w=dom.window,d=w.document;
 w.requestAnimationFrame=()=>0;w.confirm=()=>true;w.HTMLElement.prototype.scrollIntoView=function(){};
 const api=['newPlayer','card','cardDisplayName','choice','clearChoice','render','runComStep','comStandbyStep','startGame','comResponsePlan','consumeResponse','finishResponsePlay','resolveNextEffect','finishAttack','resolvePeekSelection','acknowledgePeek','beginResolution','applyQueuedEffect','declareAttack','resolveAttack','resolveTieVictim','attackPass','resolvePenalty','resolveTurnDraw','completeHumanTacticSelection','autoSelectOpeningTactics','activateExpansion','useExpansionTarget','specialSummon','beginReinforcement','revealReinforcement','chooseReinforcement','resolveDrawTwo','resolveDefensePrep','responseCanActivate','validResponsePayload','finishStandby','comActionPending','captureSnapshot','openTacticSlotIndexes','beginTurn','recordHistory','undoOne','redoOne'];
 let src=fs.readFileSync(root+'/src/engine.js','utf8').replace("var game = null;","var game = null;var testBulk=false;")

@@ -5,7 +5,7 @@ for (const size of [{ width: 844, height: 390 }, { width: 740, height: 360 }, { 
     await page.setViewportSize(size);
     const errors = [];
     page.on('pageerror', error => errors.push(error.message));
-    await page.goto('/');
+    await page.goto('/game.html');
     await page.waitForFunction(() => !!window.DuelArena);
     await expect(page.locator('#appOrientation')).toBeHidden();
     await expect(page.locator('#welcome')).toBeVisible();
@@ -62,7 +62,7 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
     let calls = 0;
     Math.random = () => .1 + (++calls % 65536) / 65536000;
   });
-  await page.goto('/');
+  await page.goto('/game.html');
   await page.waitForFunction(() => !!window.DuelArena);
   await page.locator('#welcome [data-start-mode="com"]').tap();
   await expect(page.locator('#ownHand .card.type-character').first()).toBeVisible({ timeout: 60000 });
@@ -136,7 +136,7 @@ test(`a finger selects and summons into the actual enlarged ${renderer} field sl
 
 test('both corner menus preserve the original controls during COM spectator playback', async ({ page }) => {
   await page.setViewportSize({ width: 844, height: 390 });
-  await page.goto('/');
+  await page.goto('/game.html');
   await page.waitForFunction(() => !!window.DuelArena);
   await page.locator('#appTopMenuToggle').tap();
   for (const id of ['cardCatalogBtn', 'rulesBtn', 'comStartBtn', 'autoStartBtn', 'settingsBtn', 'undoBtn', 'redoBtn']) {

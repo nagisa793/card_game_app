@@ -53,7 +53,8 @@ def build(source, output):
     html = html.replace('<body>', '<body class="duelApp">')
     html = html.replace('</head>', '<meta name="theme-color" content="#070f14">\n<link rel="manifest" href="./manifest.webmanifest">\n<link rel="apple-touch-icon" href="./app/icon-192.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<link rel="stylesheet" href="./app/landscape.css">\n</head>')
     html = html.replace('</body>', '<script type="module" src="./app/mobile.js"></script>\n</body>')
-    (output / 'index.html').write_text(html, encoding='utf-8')
+    (output / 'game.html').write_text(html, encoding='utf-8')
+    shutil.copyfile(source / 'app/host.html', output / 'index.html')
     manifest = dict(id='./', name='DUEL ARENA', short_name='DUEL ARENA', lang='ja', start_url='./',
                     scope='./', display='standalone', orientation='landscape',
                     background_color='#070f14', theme_color='#070f14',

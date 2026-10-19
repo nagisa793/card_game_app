@@ -107,15 +107,6 @@ body.duelApp .rulesBody,
 body.duelApp .cardCatalogBody,
 body.duelApp .log { -webkit-overflow-scrolling: touch; overscroll-behavior: contain; }
 body.duelApp #boardCardPreview .boardCardText { pointer-events: auto; touch-action: pan-y; }
-#appOrientation { display: none; }
-body.appPortrait #appOrientation {
-  position: fixed; inset: 0; z-index: 2000; display: flex;
-  align-items: center; justify-content: center; flex-direction: column; gap: 18px;
-  padding: 24px; background: #07111df5; color: #f0f4eb; text-align: center;
-}
-#appOrientation strong { font-size: 25px; letter-spacing: .14em; }
-#appOrientation p { margin: 0; font-size: 18px; }
-#appOrientation span { font-size: 12px; line-height: 1.7; }
 @media (orientation: landscape) and (max-height: 650px) {
   body.duelApp .top-bar { height: 44px; min-height: 44px; padding: 0 6px; flex-wrap: nowrap; }
   body.duelApp .brand { display: inline-flex; flex: 0 0 auto; font-size: 11px; }

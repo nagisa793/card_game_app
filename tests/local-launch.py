@@ -28,6 +28,9 @@ def check_launch(command, port):
         assert status['service'] == 'duel-arena-local'
         with urllib.request.urlopen(base + '/', timeout=5) as response:
             html = response.read().decode()
+            assert response.status == 200 and 'id="gameViewport"' in html and './game.html' in html
+        with urllib.request.urlopen(base + '/game.html', timeout=5) as response:
+            html = response.read().decode()
             assert response.status == 200 and 'class="duelApp"' in html
             assert './app/mobile.js' in html and 'vendor/three.module.js' in html
         for path in ('src/engine.js', 'app/landscape.css', 'app/mobile.js', 'assets/card-frames/character.webp'):

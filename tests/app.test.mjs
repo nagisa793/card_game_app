@@ -15,9 +15,12 @@ test('the entire game and all original assets are preserved in the APP build', a
   }
   const entry = await readFile('www/index.html', 'utf8');
   assert.match(entry, /viewport-fit=cover/);
-  assert.match(entry, /class="duelApp"/);
-  assert.match(entry, /app\/landscape\.css/);
-  assert.match(entry, /app\/mobile\.js/);
+  assert.match(entry, /id="gameViewport" src="\.\/game.html"/);
+  assert.match(entry, /app\/viewport\.js/);
+  const game = await readFile('www/game.html', 'utf8');
+  assert.match(game, /class="duelApp"/);
+  assert.match(game, /app\/landscape\.css/);
+  assert.match(game, /app\/mobile\.js/);
   assert.doesNotMatch(entry, /https?:\/\//);
 });
 
@@ -35,18 +38,15 @@ test('landscape viewport follows real pixels and cancelled touches do not activa
   w.document.addEventListener('click', () => clicked++);
   const source = (await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function');
   w.eval(source);
-  const gate = w.document.getElementById('appOrientation');
-  assert.equal(gate.hidden, true);
+  assert.equal(w.document.getElementById('appOrientation'), null);
   assert.equal(w.document.body.style.getPropertyValue('--app-height'), '390px');
   viewport.width = 390; viewport.height = 844;
   w.innerWidth = 390; w.innerHeight = 844;
   viewport.dispatchEvent(new w.Event('resize'));
-  assert.equal(gate.hidden, false);
-  assert(w.document.body.classList.contains('appPortrait'));
+  assert.equal(w.document.getElementById('appOrientation'), null);
   viewport.width = 932; viewport.height = 430;
   w.innerWidth = 932; w.innerHeight = 430;
   w.dispatchEvent(new w.Event('orientationchange'));
-  assert.equal(gate.hidden, true);
   assert.equal(w.document.body.style.getPropertyValue('--app-width'), '932px');
   w.document.dispatchEvent(new w.Event('pointercancel'));
   assert.equal(blurred, 1);
@@ -64,7 +64,7 @@ test('landscape entry ignores stale/zoomed visual viewports and follows the comp
   w.requestAnimationFrame = callback => { callback(); return 1; };
   w.eval((await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function'));
   assert.equal(w.document.body.style.getPropertyValue('--app-height'), '390px');
-  assert.equal(w.document.getElementById('appOrientation').hidden, true);
+  assert.equal(w.document.getElementById('appOrientation'), null);
   const probe = w.document.getElementById('appViewportProbe');
   let size = { width: 844, height: 390 };
   probe.getBoundingClientRect = () => size;
@@ -79,10 +79,10 @@ test('landscape entry ignores stale/zoomed visual viewports and follows the comp
   assert.equal(w.document.body.style.getPropertyValue('--app-height'), '340px');
   size = { width: 390, height: 844 };
   w.dispatchEvent(new w.Event('orientationchange'));
-  assert.equal(w.document.getElementById('appOrientation').hidden, false);
+  assert.equal(w.document.getElementById('appOrientation'), null);
   size = { width: 844, height: 390 };
   w.dispatchEvent(new w.Event('focus'));
-  assert.equal(w.document.getElementById('appOrientation').hidden, true);
+  assert.equal(w.document.getElementById('appOrientation'), null);
   dom.window.close();
 });
 
@@ -114,7 +114,7 @@ test('offline BGM serves proper byte ranges and rejects an invalid range', async
   let key;
   const cache = { match: async requestKey => { key = requestKey; return new Response('0123456789', { headers: { 'Content-Type': 'audio/mp4' } }); } };
   vm.runInNewContext(source, {
-    self: { addEventListener: (name, handler) => listeners[name] = handler, location: { origin: 'https://app.invalid' } },
+    self: { addEventListener: (name, handler) => listeners[name] = handler, location: { origin: 'https://app.invalid', href: 'https://app.invalid/card_game_app/sw.js' } },
     caches: { open: async () => cache }, URL, Request, Response, Headers,
     fetch: () => { throw new Error('Offline: the network must not be needed for a cached track'); }
   });
@@ -129,6 +129,11 @@ test('offline BGM serves proper byte ranges and rejects an invalid range', async
   let response;
   listeners.fetch({ request: new Request('https://app.invalid/assets/bgm.m4a', { headers: { Range: 'bytes=99-' } }), respondWith: promise => response = promise });
   assert.equal((await response).status, 416);
+  for (const [pathname, expected] of [['game.html', './game.html'], ['', './index.html']]) {
+    listeners.fetch({ request: { method: 'GET', mode: 'navigate', url: 'https://app.invalid/card_game_app/' + pathname, headers: new Headers() }, respondWith: promise => response = promise });
+    await response;
+    assert.equal(key, expected, 'offline frame navigation must not recursively serve its host');
+  }
 });
 
 test('WEB app manifest uses standalone landscape display', async () => {

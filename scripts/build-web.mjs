@@ -24,7 +24,8 @@ html = html.replace(/(<meta name="viewport" content=")[^"]*(">)/,
 html = html.replace('<body>', '<body class="duelApp">');
 html = html.replace('</head>', '<meta name="theme-color" content="#070f14">\n<link rel="manifest" href="./manifest.webmanifest">\n<link rel="apple-touch-icon" href="./app/icon-192.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<link rel="stylesheet" href="./app/landscape.css">\n</head>');
 html = html.replace('</body>', '<script type="module" src="./app/mobile.js"></script>\n</body>');
-await writeFile(path.join(output, 'index.html'), html);
+await writeFile(path.join(output, 'game.html'), html);
+await writeFile(path.join(output, 'index.html'), await readFile(path.join(root, 'app/host.html'), 'utf8'));
 await writeFile(path.join(output, 'version.json'), JSON.stringify({ commit: upstream.commit, webVersion: upstream.webVersion }, null, 2) + '\n');
 await writeFile(path.join(output, 'manifest.webmanifest'), JSON.stringify({
   id: './', name: 'DUEL ARENA', short_name: 'DUEL ARENA', lang: 'ja', start_url: './', scope: './',

@@ -1,0 +1,31 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
+import { JSDOM } from 'jsdom';
+
+test('portrait lock and native landscape preserve one game frame and rotate safe areas', async () => {
+  const dom = new JSDOM(await readFile('app/host.html', 'utf8'), { url: 'https://test.invalid', runScripts: 'outside-only', pretendToBeVisual: true });
+  const w = dom.window;
+  let size = { width: 390, height: 844 };
+  const probe = w.document.getElementById('appDisplayProbe');
+  probe.getBoundingClientRect = () => size;
+  probe.style.padding = '47px 0px 34px 0px';
+  w.eval((await readFile('app/viewport.js', 'utf8')).replaceAll('export function', 'function'));
+  const frame = w.document.getElementById('gameViewport');
+  assert.equal(frame.style.width, '844px');
+  assert.equal(frame.style.height, '390px');
+  assert.equal(frame.style.transform, 'translateX(390px) rotate(90deg)');
+  assert.deepEqual(JSON.parse(JSON.stringify(w.DuelAppViewport.safeArea)), { top: 0, right: 34, bottom: 0, left: 47 });
+  const sameWindow = frame.contentWindow;
+  size = { width: 844, height: 390 };
+  w.dispatchEvent(new w.Event('orientationchange'));
+  assert.equal(frame.style.transform, 'none');
+  assert.equal(frame.contentWindow, sameWindow);
+  assert.equal(frame.getAttribute('src'), './game.html');
+  assert.equal(w.DuelAppViewport.rotated, false);
+  size = { width: 390, height: 844 };
+  w.dispatchEvent(new w.Event('resize'));
+  assert.equal(frame.style.transform, 'translateX(390px) rotate(90deg)');
+  assert.equal(frame.contentWindow, sameWindow);
+  dom.window.close();
+});

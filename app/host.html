@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>DUEL ARENA | カードバトル</title>
+<meta name="theme-color" content="#070f14">
+<link rel="manifest" href="./manifest.webmanifest">
+<link rel="apple-touch-icon" href="./app/icon-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<style>
+  html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #070f14; }
+  body { overscroll-behavior: none; }
+  #gameViewport {
+    display: block; position: fixed; top: 0; left: 0; border: 0;
+    width: 100vw; height: 100vh; height: 100dvh; transform-origin: 0 0;
+  }
+  /* Apply the landscape layout before any script or game asset has loaded. */
+  @media (orientation: portrait) {
+    #gameViewport {
+      width: 100vh; width: 100dvh; height: 100vw;
+      transform: translateX(100vw) rotate(90deg);
+    }
+  }
+  #appDisplayProbe {
+    position: fixed; top: 0; left: 0; width: 100vw;
+    height: 100vh; height: 100dvh; box-sizing: border-box;
+    padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px)
+      env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px);
+    visibility: hidden; pointer-events: none; contain: strict;
+  }
+</style>
+</head>
+<body>
+<div id="appDisplayProbe" aria-hidden="true"></div>
+<!-- A real landscape viewport keeps media queries, canvas raycasting, taps,
+     scrolling and dialogs in the same coordinate system when this frame turns. -->
+<iframe id="gameViewport" src="./game.html" title="DUEL ARENA カードバトル" allow="autoplay; fullscreen"></iframe>
+<script type="module" src="./app/viewport.js"></script>
+</body>
+</html>

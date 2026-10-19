@@ -60,6 +60,7 @@ class LocalWebTest(unittest.TestCase):
         (root / 'web/index.html').write_text('<html><head><meta name="viewport" content="width=device-width"></head><body>DUEL ARENA</body></html>')
         (root / 'web/track.m4a').write_bytes(b'original audio')
         (root / 'app/custom.css').write_text(text)
+        (root / 'app/host.html').write_text((ROOT / 'app/host.html').read_text())
         (root / 'scripts/service-worker.template.js').write_text((ROOT / 'scripts/service-worker.template.js').read_text())
         (root / 'upstream.json').write_text(json.dumps(dict(commit='a' * 40, webVersion=102, files=module.inventory(root / 'web'))))
         (root / 'local_web.py').write_text('local server')
