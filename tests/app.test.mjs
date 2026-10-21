@@ -145,6 +145,48 @@ test('WEB app manifest uses standalone landscape display', async () => {
   assert.equal(manifest.scope, './');
 });
 
+test('released touch is cleared after the renderer click without changing mouse hover', async () => {
+  const dom = new JSDOM('<body class="duelApp"><div id="battleStage"><canvas id="sceneCanvas"></canvas></div></body>', { url: 'https://test.invalid', runScripts: 'outside-only', pretendToBeVisual: true });
+  const w = dom.window, d = w.document, canvas = d.getElementById('sceneCanvas');
+  try {
+    let cleared = 0, blurred = 0;
+    const arena = w.DuelArena = { canvas, pointerInside: false, invalidate() {}, onCardHover: node => { if (node === null) cleared++; } };
+    w.addEventListener('blur', () => blurred++);
+    canvas.addEventListener('click', () => {
+      // The original renderer refreshes its raycast while inspecting the tap.
+      arena.pointerInside = true;
+      arena.pointerEvent = { clientX: 100, clientY: 100 };
+      arena.hover = canvas;
+      arena.hoverSlot = { id: 'ownBattle', index: 0 };
+    });
+    w.eval((await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function'));
+    const pointer = (name, type) => {
+      const event = new w.Event(name, { bubbles: true });
+      Object.defineProperty(event, 'pointerType', { value: type });
+      canvas.dispatchEvent(event);
+    };
+    pointer('pointerdown', 'touch');
+    pointer('pointerup', 'touch');
+    canvas.click();
+    await new Promise(resolve => w.queueMicrotask(resolve));
+    assert.equal(arena.pointerInside, false);
+    assert.equal(arena.pointerEvent, null);
+    assert.equal(arena.hoverSlot, null);
+    assert.equal(arena.hover, null);
+    assert(cleared > 0);
+    assert.equal(blurred, 1);
+    pointer('pointerdown', 'mouse');
+    pointer('pointerup', 'mouse');
+    canvas.click();
+    await new Promise(resolve => w.queueMicrotask(resolve));
+    assert.equal(arena.pointerInside, true, 'mouse hover remains available');
+    assert.equal(blurred, 1, 'mouse release does not reset the hand');
+    pointer('pointercancel', 'touch');
+    assert.equal(arena.pointerInside, false);
+    assert.equal(blurred, 2);
+  } finally { w.close(); }
+});
+
 
 test('first cache installation never reloads and game-start taps block update activation', async () => {
   const dom = new JSDOM('<body class="duelApp"><div id="battleStage"></div><button data-start-mode="com">Start</button></body>', { url: 'https://test.invalid', runScripts: 'outside-only', pretendToBeVisual: true });

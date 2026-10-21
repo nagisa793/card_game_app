@@ -251,8 +251,49 @@ document.addEventListener('contextmenu', event => {
   if (event.target.closest?.('#battleStage')) event.preventDefault();
 });
 
-// Avoid leaving a held hand-card hover after an interrupted finger gesture.
-document.addEventListener('pointercancel', () => window.dispatchEvent(new Event('blur')), { passive: true });
+// A touch has no persistent hover. Safari can omit pointerleave when a card
+// changes beneath the finger. The renderer must not rebind that old position
+// to a newly placed card and reopen its large preview on the next render.
+let lastPointerKind = 'mouse';
+function releaseArenaPointer() {
+  const arena = window.DuelArena;
+  if (!arena) return;
+  const hadHover = arena.pointerInside || arena.hover || arena.hoverPile || arena.hoverSlot;
+  arena.pointerInside = false;
+  arena.pointerEvent = null;
+  arena.hover = null;
+  arena.hoverPile = null;
+  arena.hoverSlot = null;
+  if (arena.canvas) arena.canvas.style.cursor = 'default';
+  if (hadHover) {
+    arena.onCardHover?.(null);
+    arena.invalidate?.();
+  }
+}
+document.addEventListener('pointerdown', event => {
+  lastPointerKind = event.pointerType || 'mouse';
+}, { capture: true, passive: true });
+document.addEventListener('pointerup', event => {
+  if ((event.pointerType || lastPointerKind) === 'mouse') return;
+  releaseArenaPointer();
+  // Clear only the original hand-hover bookkeeping; the chosen game action
+  // and an explicitly pinned card preview are not changed by its blur handler.
+  window.dispatchEvent(new Event('blur'));
+}, { capture: true, passive: true });
+document.addEventListener('click', () => {
+  if (lastPointerKind === 'mouse') return;
+  // The renderer's click handler performs inspection and can set pointerInside
+  // again after pointerup. Clear hover once it finishes, even if it stops bubbling.
+  queueMicrotask(releaseArenaPointer);
+}, { capture: true });
+document.addEventListener('pointercancel', () => {
+  releaseArenaPointer();
+  window.dispatchEvent(new Event('blur'));
+}, { capture: true, passive: true });
+window.addEventListener('blur', releaseArenaPointer);
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden) releaseArenaPointer();
+});
 
 // WEB app updates apply before the next game, never during a match.
 if ( 'serviceWorker' in navigator && window.isSecureContext) {
