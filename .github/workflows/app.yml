@@ -62,8 +62,11 @@ jobs:
           python3 tests/local-web.py
           python3 tests/local-launch.py
         if: steps.need.outputs.build == 'true'
+      - name: Verify prepared artwork before testing all interactions
+        run: npx playwright test --grep @performance
+        if: steps.need.outputs.build == 'true'
       - name: Test landscape viewports and direct touch selection
-        run: npx playwright test
+        run: npx playwright test --grep-invert @performance
         if: steps.need.outputs.build == 'true'
       - name: Keep mobile test evidence on failure
         uses: actions/upload-artifact@v4
@@ -71,8 +74,11 @@ jobs:
         with:
           name: mobile-test-report
           path: |
-            playwright-report/
-            test-results/
+            playwright-report/index.html
+            test-results/**/*.png
+            test-results/**/error-context.md
+            app/prepared/
+            app/fonts/
           if-no-files-found: ignore
       - name: Keep landscape previews for visual verification
         uses: actions/upload-artifact@v4
