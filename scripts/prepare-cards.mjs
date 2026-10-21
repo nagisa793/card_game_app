@@ -28,7 +28,7 @@ const server=createServer(async(req,res)=>{
  }catch{res.statusCode=404;res.end();}
 });
 await new Promise(resolve=>server.listen(0,'127.0.0.1',resolve));
-const browser=await chromium.launch();
+const browser=await chromium.launch({args:['--use-gl=angle','--use-angle=swiftshader','--enable-unsafe-swiftshader']});
 try{
  const page=await browser.newPage();await page.goto(`http://127.0.0.1:${server.address().port}/prepare.html`);
  const cards=await page.evaluate(async()=>{
@@ -47,7 +47,7 @@ try{
   if(manifest[key])continue;
   const data=await page.evaluate(async card=>{const {cardTexture}=await import('./src/materials.js?v=97');return cardTexture(card.type,card.title,card.effect).image.toDataURL('image/png').split(',')[1];},card);
   const file=createHash('sha256').update(key).digest('hex').slice(0,20)+'.webp';
-  const converted=spawnSync('python3',['-c',"from PIL import Image;import io,sys;Image.open(io.BytesIO(sys.stdin.buffer.read())).save(sys.argv[1],format='WEBP',lossless=True,method=6,exact=True)",path.join(output,file)],{input:Buffer.from(data,'base64')});
+  const converted=spawnSync('python3',['-c',"from PIL import Image;import io,sys;original=Image.open(io.BytesIO(sys.stdin.buffer.read())).convert('RGBA');original.save(sys.argv[1],format='WEBP',lossless=True,method=6,exact=True);actual=Image.open(sys.argv[1]).convert('RGBA');assert original.tobytes()==actual.tobytes(),'Card conversion changed original pixels'",path.join(output,file)],{input:Buffer.from(data,'base64')});
   if(converted.status!==0)throw Error(converted.stderr.toString());manifest[key]=file;
  }
  await writeFile(path.join(output,'manifest.json'),JSON.stringify(manifest,null,2)+'\n');

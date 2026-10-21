@@ -3,6 +3,7 @@ from pathlib import Path
 import sys
 from fontTools import subset
 from fontTools.ttLib import TTFont
+from fontTools.pens.recordingPen import DecomposingRecordingPen
 
 root = Path(__file__).resolve().parents[1]
 font_path = root / 'web/assets/NotoSansJP.ttf'
@@ -22,4 +23,17 @@ font.flavor = 'woff2'
 output = Path(sys.argv[1]) if len(sys.argv) > 1 else root / 'app/fonts/duel.woff2'
 output.parent.mkdir(parents=True, exist_ok=True)
 font.save(output)
+original = TTFont(font_path)
+prepared = TTFont(output)
+for weight in (400, 700):
+    glyph_sets = [item.getGlyphSet(location={'wght': weight}) for item in (original, prepared)]
+    for code in prepared.getBestCmap():
+        outlines = []
+        for item, glyphs in zip((original, prepared), glyph_sets):
+            pen = DecomposingRecordingPen(glyphs)
+            glyphs[item.getBestCmap()[code]].draw(pen)
+            outlines.append(pen.value)
+        if outlines[0] != outlines[1]:
+            raise ValueError(f'Font outline changed: U+{code:04X}, weight {weight}')
+print(f'Verified {len(prepared.getBestCmap()) * 2} original regular/bold glyph outlines')
 print(f'Original font {font_path.stat().st_size:,} bytes → same glyphs {output.stat().st_size:,} bytes')
