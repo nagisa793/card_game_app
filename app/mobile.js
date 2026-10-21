@@ -267,20 +267,43 @@ if ( 'serviceWorker' in navigator && window.isSecureContext) {
     // The first installation claims the page already serving these assets.
     // Reloading it races with rotation, menus and the first game-start tap.
     if (!controlled) { controlled = true; return; }
-    if (reloading) return;
+    if (reloading || !updateIsSafe()) return;
     reloading = true;
-    if (updateIsSafe()) location.reload();
+    // Refresh the outer entry too; reloading only game.html can leave an old
+    // host cached in an installed home-screen app.
+    const appWindow = window.frameElement?.id === 'gameViewport' ? window.parent : window;
+    appWindow.location.reload();
   });
-  navigator.serviceWorker.register('./sw.js').then(registration => {
+  navigator.serviceWorker.register('./sw.js', { updateViaCache: 'none' }).then(registration => {
     const activateAtWelcome = () => {
       if (updateIsSafe()) registration.waiting?.postMessage({ type: 'ACTIVATE_UPDATE' });
     };
+    const watched = new WeakSet();
+    const observeInstalling = () => {
+      const installing = registration.installing;
+      if (!installing || watched.has(installing)) return;
+      watched.add(installing);
+      installing.addEventListener('statechange', () => {
+        if (installing.state === 'installed' && updateIsSafe()) {
+          installing.postMessage({ type: 'ACTIVATE_UPDATE' });
+        }
+        activateAtWelcome();
+      });
+    };
+    const checkForUpdate = () => {
+      if (document.hidden) return;
+      observeInstalling();
+      activateAtWelcome();
+      const update = registration.update?.();
+      update?.then(() => { observeInstalling(); activateAtWelcome(); }).catch(console.warn);
+    };
+    registration.addEventListener('updatefound', observeInstalling);
+    // The browser may have dispatched updatefound before register resolved.
+    observeInstalling();
     activateAtWelcome();
-    registration.addEventListener('updatefound', () => {
-      registration.installing?.addEventListener('statechange', activateAtWelcome);
-    });
-    document.addEventListener('visibilitychange', () => {
-      if (!document.hidden) { registration.update().catch(console.warn); activateAtWelcome(); }
-    });
+    checkForUpdate();
+    document.addEventListener('visibilitychange', checkForUpdate);
+    window.addEventListener('pageshow', checkForUpdate);
+    window.addEventListener('focus', checkForUpdate);
   }).catch(error => console.warn('Offline cache unavailable', error));
 }

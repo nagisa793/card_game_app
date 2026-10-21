@@ -8,10 +8,14 @@ self.addEventListener('install', event => {
       if (!response.ok) throw new Error('Missing APP asset: ' + file);
       await cache.put(file, response);
     }
+    // Legacy cached pages can miss updatefound and never request activation.
+    // Take control only after the entire replacement is ready. Each page's
+    // controllerchange handler still preserves an already-started match.
+    await self.skipWaiting();
   }));
 });
 self.addEventListener('message', event => {
-  if (event.data?.type === 'ACTIVATE_UPDATE') self.skipWaiting();
+  if (event.data?.type === 'ACTIVATE_UPDATE') event.waitUntil(self.skipWaiting());
 });
 self.addEventListener('activate', event => {
   event.waitUntil((async () => {
@@ -27,8 +31,9 @@ self.addEventListener('fetch', event => {
   event.respondWith((async () => {
     const cache = await caches.open(CACHE);
     const gamePath = new URL('./game.html', self.location.href).pathname;
+    const isGame = url.pathname === gamePath || url.pathname === gamePath.replace(/\.html$/, '');
     const key = event.request.mode === 'navigate'
-      ? (url.pathname === gamePath ? './game.html' : './index.html') : url.pathname;
+      ? (isGame ? './game.html' : './index.html') : url.pathname;
     const cached = await cache.match(key, { ignoreSearch: true });
     if (cached && event.request.headers.has('range')) {
       const bytes = await cached.arrayBuffer();

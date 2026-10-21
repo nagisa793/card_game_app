@@ -130,7 +130,7 @@ test('offline BGM serves proper byte ranges and rejects an invalid range', async
   let response;
   listeners.fetch({ request: new Request('https://app.invalid/assets/bgm.m4a', { headers: { Range: 'bytes=99-' } }), respondWith: promise => response = promise });
   assert.equal((await response).status, 416);
-  for (const [pathname, expected] of [['game.html', './game.html'], ['', './index.html']]) {
+  for (const [pathname, expected] of [['game.html', './game.html'], ['game', './game.html'], ['', './index.html']]) {
     listeners.fetch({ request: { method: 'GET', mode: 'navigate', url: 'https://app.invalid/card_game_app/' + pathname, headers: new Headers() }, respondWith: promise => response = promise });
     await response;
     assert.equal(key, expected, 'offline frame navigation must not recursively serve its host');
@@ -157,7 +157,7 @@ test('first cache installation never reloads and game-start taps block update ac
   Object.defineProperty(w, 'isSecureContext', { value: true });
   w.__reload = () => reloads++;
   w.DuelEngine = { view: () => null };
-  w.eval((await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function').replace('location.reload()', 'window.__reload()'));
+  w.eval((await readFile('app/mobile.js', 'utf8')).replaceAll('export function', 'function').replace('appWindow.location.reload()', 'window.__reload()'));
   worker.dispatchEvent(new w.Event('controllerchange'));
   assert.equal(reloads, 0);
   w.document.querySelector('button').click();
