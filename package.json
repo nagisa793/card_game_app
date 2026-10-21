@@ -7,7 +7,7 @@
   "scripts": {
     "build": "node scripts/build-web.mjs",
     "sync:web": "node scripts/sync-web.mjs",
-    "test": "node --test tests/app.test.mjs tests/viewport.test.mjs tests/update.test.mjs && node tests/rules-regression.cjs && node tests/audio-startup.cjs",
+    "test": "node --test tests/app.test.mjs tests/viewport.test.mjs tests/update.test.mjs tests/performance.test.mjs && node tests/rules-regression.cjs && node tests/optimized-rules.cjs && node tests/audio-startup.cjs",
     "check": "npm run build && npm test",
     "start": "python3 local_web.py",
     "test:local": "python3 tests/local-web.py"

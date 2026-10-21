@@ -3,6 +3,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { inventory } from './files.mjs';
 import { createHash } from 'node:crypto';
+import { optimizeWeb } from './optimize-web.mjs';
 
 const root = path.resolve(fileURLToPath(new URL('..', import.meta.url)));
 const upstream = JSON.parse(await readFile(path.join(root, 'upstream.json'), 'utf8'));
@@ -11,6 +12,8 @@ if (JSON.stringify(files) !== JSON.stringify(upstream.files)) {
   throw new Error('web/ differs from the recorded WEB source. Run npm run sync:web; keep APP changes in app/.');
 }
 const output = path.join(root, 'www');
+// Keep a portable rendering adapter for the optional Node-free Mac launcher too.
+await optimizeWeb(root, root);
 await rm(output, { recursive: true, force: true });
 await cp(path.join(root, 'web'), output, { recursive: true });
 await mkdir(path.join(output, 'app'), { recursive: true });
@@ -22,6 +25,9 @@ if (!/name="viewport"/.test(html) || !html.includes('</head>') || !html.includes
 html = html.replace(/(<meta name="viewport" content=")[^"]*(">)/,
   '$1width=device-width, initial-scale=1.0, viewport-fit=cover$2');
 html = html.replace('<body>', '<body class="duelApp">');
+html = html.replaceAll('./src/legacy.css', './app/runtime/legacy.css').replaceAll('./src/interface.css', './app/runtime/interface.css');
+html = html.replace(/<script src="\.\/src\/engine\.js[^\"]*"><\/script>\s*<script type="module" src="\.\/src\/boot\.js[^\"]*"><\/script>/,
+  '<script type="module" src="./app/render-bootstrap.js"></script>');
 html = html.replace('<a class="brand" href="./index.html">', '<a class="brand" href="./index.html" target="_top">');
 html = html.replace('</head>', '<meta name="theme-color" content="#070f14">\n<link rel="manifest" href="./manifest.webmanifest">\n<link rel="apple-touch-icon" href="./app/icon-192.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<link rel="stylesheet" href="./app/landscape.css">\n</head>');
 html = html.replace('</body>', '<script type="module" src="./app/mobile.js"></script>\n</body>');
@@ -34,7 +40,8 @@ await writeFile(path.join(output, 'manifest.webmanifest'), JSON.stringify({
   icons: [192, 512].map(size => ({ src: `./app/icon-${size}.png`, sizes: `${size}x${size}`, type: 'image/png', purpose: 'any' }))
 }, null, 2) + '\n');
 const builtFiles = Object.fromEntries(Object.entries(await inventory(output)).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0));
-const cached = Object.keys(builtFiles).map(file => './' + file);
+// The original files remain available for provenance, but the installed APP uses the subset font.
+const cached = Object.keys(builtFiles).filter(file => file !== 'assets/NotoSansJP.ttf').map(file => './' + file);
 const appRevision = createHash('sha256').update(JSON.stringify(builtFiles)).digest('hex').slice(0, 16);
 const sw = (await readFile(path.join(root, 'scripts/service-worker.template.js'), 'utf8'))
   .replace('__VERSION__', upstream.commit + '-' + appRevision).replace('__FILES__', JSON.stringify(cached));

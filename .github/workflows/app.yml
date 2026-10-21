@@ -45,14 +45,22 @@ jobs:
       - name: Read the original WEB game into APP only
         run: npm run sync:web
         if: steps.need.outputs.build == 'true'
+      - name: Install lossless card and font preparation tools
+        run: python3 -m pip install -r requirements-web-build.txt
+        if: steps.need.outputs.build == 'true'
+      - name: Install Chromium and WebKit for mobile layout tests
+        run: npx playwright install --with-deps chromium webkit
+        if: steps.need.outputs.build == 'true'
+      - name: Prepare original card artwork and subset the same font
+        run: |
+          python3 scripts/prepare-font.py
+          node scripts/prepare-cards.mjs
+        if: steps.need.outputs.build == 'true'
       - name: Build and verify original rules and APP behavior
         run: |
           npm run check
           python3 tests/local-web.py
           python3 tests/local-launch.py
-        if: steps.need.outputs.build == 'true'
-      - name: Install Chromium and WebKit for mobile layout tests
-        run: npx playwright install --with-deps chromium webkit
         if: steps.need.outputs.build == 'true'
       - name: Test landscape viewports and direct touch selection
         run: npx playwright test
@@ -80,7 +88,7 @@ jobs:
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add web upstream.json tests/rules-regression.cjs tests/audio-startup.cjs
+          git add web upstream.json tests/rules-regression.cjs tests/audio-startup.cjs app/runtime app/fonts app/prepared app/render-bootstrap.js
           if ! git diff --cached --quiet; then
             version=$(node -p 'JSON.parse(require("fs").readFileSync("upstream.json","utf8")).webVersion')
             git commit -m "Sync WEB v${version} into APP without changing game rules"

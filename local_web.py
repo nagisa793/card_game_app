@@ -51,6 +51,9 @@ def build(source, output):
     html = re.sub(r'(<meta name="viewport" content=")[^"]*(">)',
                   r'\1width=device-width, initial-scale=1.0, viewport-fit=cover\2', html)
     html = html.replace('<body>', '<body class="duelApp">')
+    html = html.replace('./src/legacy.css', './app/runtime/legacy.css').replace('./src/interface.css', './app/runtime/interface.css')
+    html = re.sub(r'<script src="\./src/engine\.js[^\"]*"></script>\s*<script type="module" src="\./src/boot\.js[^\"]*"></script>',
+                  '<script type="module" src="./app/render-bootstrap.js"></script>', html)
     html = html.replace('<a class="brand" href="./index.html">', '<a class="brand" href="./index.html" target="_top">')
     html = html.replace('</head>', '<meta name="theme-color" content="#070f14">\n<link rel="manifest" href="./manifest.webmanifest">\n<link rel="apple-touch-icon" href="./app/icon-192.png">\n<meta name="apple-mobile-web-app-capable" content="yes">\n<link rel="stylesheet" href="./app/landscape.css">\n</head>')
     html = html.replace('</body>', '<script type="module" src="./app/mobile.js"></script>\n</body>')
@@ -65,7 +68,7 @@ def build(source, output):
     built_files = inventory(output)
     revision = hashlib.sha256(json.dumps(built_files, ensure_ascii=False, separators=(',', ':')).encode()).hexdigest()[:16]
     worker = (source / 'scripts/service-worker.template.js').read_text(encoding='utf-8')
-    worker = worker.replace('__VERSION__', metadata['commit'] + '-' + revision).replace('__FILES__', json.dumps(['./' + name for name in built_files], ensure_ascii=False, separators=(',', ':')))
+    worker = worker.replace('__VERSION__', metadata['commit'] + '-' + revision).replace('__FILES__', json.dumps(['./' + name for name in built_files if name != 'assets/NotoSansJP.ttf'], ensure_ascii=False, separators=(',', ':')))
     (output / 'sw.js').write_text(worker, encoding='utf-8')
 
 
