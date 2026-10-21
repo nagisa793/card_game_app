@@ -36,6 +36,7 @@ test('prepared card faces preserve the original artwork and dimensions',async({p
 
 test('catalog and normal play use prepared faces without synchronous image encoding',async({page})=>{
  await page.addInitScript(()=>{
+  let calls=0;Math.random=()=>.1+(++calls%65536)/65536000;
   window.syncImageEncodes=0;
   const original=HTMLCanvasElement.prototype.toDataURL;
   HTMLCanvasElement.prototype.toDataURL=function(...args){window.syncImageEncodes++;return original.apply(this,args);};
